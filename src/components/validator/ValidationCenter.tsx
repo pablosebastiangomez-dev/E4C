@@ -10,17 +10,24 @@ interface ValidationCenterProps {
 }
 
 export function ValidationCenter({ requests, onApprove, onReject }: ValidationCenterProps) {
+  // --- Estados Locales del Componente ---
+  // `selectedRequest`: Almacena la solicitud de NFT que el validador está revisando en el modal.
   const [selectedRequest, setSelectedRequest] = useState<NFTRequest | null>(null);
+  // `filter`: Controla qué solicitudes se muestran en la lista (todas, pendientes, validadas, rechazadas).
   const [filter, setFilter] = useState<'all' | 'pending' | 'validated' | 'rejected'>('all');
 
+  // --- Lógica de Filtrado de Solicitudes ---
+  // Filtra la lista de solicitudes `requests` basándose en el valor del estado `filter`.
   const filteredRequests = requests.filter(req => {
-    if (filter === 'all') return req.status !== 'pending-admin';
+    if (filter === 'all') return req.status !== 'pending-admin'; // Muestra todas excepto las que aún no llegan al validador
     if (filter === 'pending') return req.status === 'pending-validator';
-    if (filter === 'validated') return req.status === 'approved' || req.status === 'blockchain-pending';
+    if (filter === 'validated') return req.status === 'approved';
     if (filter === 'rejected') return req.status === 'rejected';
     return true;
   });
 
+  // --- Función Auxiliar para la Insignia de Estado ---
+  // Devuelve un componente `<span>` con un icono y estilo específico según el estado de la solicitud.
   const getStatusBadge = (status: NFTRequest['status']) => {
     switch (status) {
       case 'pending-validator':
@@ -30,13 +37,7 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
             Pendiente Validación
           </span>
         );
-      case 'blockchain-pending':
-        return (
-          <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700 border border-blue-200">
-            <Loader2 className="inline w-3 h-3 mr-1 animate-spin" />
-            Registrando en Blockchain
-          </span>
-        );
+
       case 'approved':
         return (
           <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 border border-green-200">
@@ -93,6 +94,8 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
             </div>
           ) : (
             <div className="space-y-4">
+              {/* --- Renderizado Condicional de Solicitudes Individuales --- */}
+              {/* Itera sobre las solicitudes filtradas, mostrando detalles y acciones. */}
               {filteredRequests.map(request => (
                 <div
                   key={request.id}
@@ -113,7 +116,7 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
                         <span>{new Date(request.requestDate).toLocaleDateString('es-ES')}</span>
                       </div>
 
-                      {/* Firmas Previas */}
+                      {/* Firmas Previas Completadas (Docente y Admin) */}
                       <div className="bg-gray-50 rounded-lg p-4 mb-3">
                         <p className="text-xs text-gray-600 mb-2">Firmas Completadas:</p>
                         <div className="flex items-center gap-4 text-sm">
@@ -133,12 +136,7 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
                         </div>
                       </div>
 
-                      {request.blockchainHash && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-xs text-green-600 mb-1">Hash de blockchain:</p>
-                          <p className="text-xs font-mono text-green-900 break-all">{request.blockchainHash}</p>
-                        </div>
-                      )}
+
 
                       {request.status === 'rejected' && request.rejectionReason && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -148,6 +146,7 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
                       )}
                     </div>
 
+                    {/* Botón 'Validar' que aparece solo si la solicitud está pendiente del validador. */}
                     {request.status === 'pending-validator' && (
                       <button
                         onClick={() => setSelectedRequest(request)}
@@ -164,7 +163,9 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
         </div>
       </div>
 
-      {/* Modal de Validación */}
+      {/* --- Modal de Validación de Solicitud --- */}
+      {/* Se renderiza condicionalmente cuando se ha seleccionado una solicitud para validar.
+          Pasa funciones para aprobar, rechazar o cerrar el modal, las cuales actualizan el estado. */}
       {selectedRequest && (
         <ValidationInterface
           request={selectedRequest}

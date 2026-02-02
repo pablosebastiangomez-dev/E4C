@@ -70,6 +70,7 @@ export function StudentManagement({ students, onCreateStudent }: StudentManageme
         </div>
       </div>
 
+      {/* Esta es la parte que lista los alumnos */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
           <h3 className="text-gray-900">Lista de Estudiantes</h3>

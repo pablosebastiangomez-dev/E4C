@@ -1,6 +1,6 @@
 import { ArrowLeft, Shield, CheckCircle2, Calendar } from 'lucide-react';
 import { type NFT } from '../../types';
-import { useSupabaseCrud } from '../../hooks';
+
 
 interface NFTDetailProps {
   nftId: string | null;
@@ -8,26 +8,59 @@ interface NFTDetailProps {
 }
 
 export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
-  const {
-    data: nfts,
-    loading: nftsLoading,
-    error: nftsError,
-  } = useSupabaseCrud<NFT>('nfts');
+  // --- Datos de NFT de Prueba (Mock Data) ---
+  // Esta lista de NFTs es solo para demostración. En una aplicación real,
+  // estos datos provendrían de una API o una base de datos.
+  const mockNfts: NFT[] = [
+    {
+      id: 'nft-1',
+      name: 'Pioneer Innovator Award',
+      description: 'Awarded for outstanding innovation in the annual science fair.',
+      image: '🚀',
+      issuedDate: '2023-05-15T10:00:00Z',
+      category: 'excellence',
+      signatures: {
+        teacher: 'Prof. Alex Johnson',
+        admin: 'Dr. Emily White',
+        timestamp: '2023-05-20T11:30:00Z',
+      },
+    },
+    {
+      id: 'nft-2',
+      name: 'Community Leader Recognition',
+      description: 'Recognizing significant contributions to school community service initiatives.',
+      image: '🤝',
+      issuedDate: '2023-03-01T09:00:00Z',
+      category: 'achievement',
+      signatures: {
+        teacher: 'Ms. Sarah Davis',
+        admin: 'Dr. Emily White',
+        timestamp: '2023-03-05T14:00:00Z',
+      },
+    },
+    {
+      id: 'nft-3',
+      name: 'Creative Writer Award',
+      description: 'For exceptional creativity and storytelling in the literary arts program.',
+      image: '✍️',
+      issuedDate: '2023-06-20T15:00:00Z',
+      category: 'excellence',
+      signatures: {
+        teacher: 'Mr. David Lee',
+        admin: 'Dr. Emily White',
+        timestamp: '2023-06-25T16:00:00Z',
+      },
+    },
+  ];
 
-  if (nftsLoading) {
-    return <div className="text-center py-8">Cargando detalles del NFT...</div>;
-  }
+  const [nfts, setNfts] = useState<NFT[]>(mockNfts);
 
-  if (nftsError) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Error al cargar detalles del NFT: {nftsError}
-      </div>
-    );
-  }
 
   const nft = (nfts || []).find(n => n.id === nftId);
 
+  // --- Renderizado Condicional: NFT No Encontrado ---
+  // Si no se encuentra el NFT con el ID proporcionado, se muestra un mensaje de error
+  // y un botón para volver a la vista anterior.
   if (!nft) {
     return (
       <div className="bg-white rounded-xl p-8 border border-gray-200 text-center">
@@ -58,6 +91,7 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-12 text-center">
           <div className="text-9xl mb-4">{nft.image}</div>
           <h2 className="text-white mb-2">{nft.name}</h2>
+          {/* Estilos dinámicos para la insignia de categoría basados en el tipo de NFT. */}
           <div className={`inline-flex px-4 py-2 rounded-full text-sm ${
             nft.category === 'excellence'
               ? 'bg-yellow-400 text-yellow-900'
@@ -126,23 +160,7 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
             </div>
           </div>
 
-          {/* Hash de Verificación (simulado) */}
-          {nft.blockchainHash && (
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h4 className="text-gray-900 mb-2">Hash de Verificación</h4>
-              {/* TODO: Blockchain Integration Point - Transaction Link */}
-              {/* This hash would ideally be a clickable link to a blockchain explorer
-                  (e.g., Etherscan, Solscan, StellarExpert, or a custom explorer for your chosen blockchain)
-                  to view the on-chain transaction details. */}
-              <p className="text-gray-600 text-xs font-mono bg-white p-3 rounded border border-gray-200 break-all">
-                {nft.blockchainHash}
-              </p>
-              <p className="text-gray-500 text-xs mt-2">
-                Este hash único verifica la autenticidad del logro en la blockchain educativa.
-                (Aquí se podría añadir un enlace a un explorador de blockchain para ver la transacción).
-              </p>
-            </div>
-          )}
+
 
           {/* Timestamp de Firma */}
           <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-200">

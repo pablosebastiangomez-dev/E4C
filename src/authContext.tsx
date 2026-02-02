@@ -1,9 +1,34 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
-import { Session, User } from '@supabase/supabase-js';
 import { UserRole } from './App';
 
-// Set to true to enable demo mode with a mock user
+// Mock types for Session and User
+interface User {
+  id: string;
+  app_metadata: {
+    provider?: string;
+  };
+  user_metadata: {
+    role?: UserRole;
+    [key: string]: any;
+  };
+  aud: string;
+  created_at: string;
+  [key: string]: any;
+}
+
+interface Session {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+  token_type: string;
+  expires_in: number;
+  expires_at: number;
+}
+
+
+// --- MODO DEMO ---
+// Poner en `true` para habilitar un usuario y sesión falsos para desarrollo y demostración.
+// Esto evita la necesidad de tener un backend de autenticación real funcionando.
 const DEMO_MODE = true;
 
 interface AuthContextType {
@@ -23,6 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Función para cambiar de rol de usuario (solo para el modo demo).
+  // Permite simular la vista de diferentes tipos de usuario sin necesidad de iniciar/cerrar sesión.
   const switchUserRole = (role: UserRole) => {
     if (DEMO_MODE && user) {
       const mockUser: User = {
@@ -34,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
+  // Efecto para inicializar la sesión falsa cuando el modo demo está activado.
   useEffect(() => {
     if (DEMO_MODE) {
       const initialRole: UserRole = 'student';
@@ -55,59 +83,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(mockSession);
       setUser(mockUser);
       setLoading(false);
-    } else {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user || null);
-        setLoading(false);
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setSession(session);
-          setUser(session?.user || null);
-          setLoading(false);
-        }
-      );
-
-      return () => subscription.unsubscribe();
     }
   }, []);
 
   const signIn = async (email: string, password: string) => {
     if (DEMO_MODE) return Promise.resolve({ user: session?.user, session });
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) throw error;
-    return data;
+    return Promise.resolve({ user: null, session: null });
   };
 
   const signUp = async (email: string, password: string) => {
     if (DEMO_MODE) return Promise.resolve({ user: session?.user, session });
-    setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role: 'unapproved',
-        },
-      },
-    });
-    setLoading(false);
-    if (error) throw error;
-    return data;
+    return Promise.resolve({ user: null, session: null });
   };
 
   const signOut = async () => {
     if (DEMO_MODE) {
       return Promise.resolve();
     }
-    setLoading(true);
-    const { error } = await supabase.auth.signOut();
-    setLoading(false);
-    if (error) throw error;
+    return Promise.resolve();
   };
 
   return (
@@ -117,6 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Hook personalizado para acceder al contexto de autenticación.
+// Proporciona una forma limpia y segura de obtener los datos de sesión y usuario en cualquier componente.
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

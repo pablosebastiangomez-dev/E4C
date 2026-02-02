@@ -10,8 +10,11 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
     return <div className="text-center py-8">No hay estudiantes para mostrar.</div>;
   }
 
+  // Ordena a los estudiantes en orden descendente según su cantidad de tokens.
   const sortedStudents = [...students].sort((a, b) => b.tokens - a.tokens);
 
+  // --- Funciones Auxiliares de UI ---
+  // Devuelve un icono de medalla o número según la posición en el ranking.
   const getMedalIcon = (position: number) => {
     switch (position) {
       case 0:
@@ -25,6 +28,7 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
     }
   };
 
+  // Devuelve clases de CSS para el fondo de la tarjeta según la posición.
   const getMedalBg = (position: number) => {
     switch (position) {
       case 0:
@@ -40,7 +44,9 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top 3 Podium */}
+      {/* Renderizado del Podio para el Top 3 */}
+      {/* Muestra a los 3 mejores estudiantes con un diseño especial de podio (2-1-3)
+          y estilos visuales que resaltan su posición. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {sortedStudents.slice(0, 3).map((student, index) => (
           <div
@@ -73,7 +79,7 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
         ))}
       </div>
 
-      {/* Rest of Rankings */}
+      {/* Renderizado del resto de la clasificación */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50">
           <div className="flex items-center gap-2">

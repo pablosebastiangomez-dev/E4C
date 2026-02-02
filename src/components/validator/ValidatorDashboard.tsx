@@ -9,8 +9,10 @@ interface ValidatorDashboardProps {
 }
 
 export function ValidatorDashboard({ nftRequests, onApproveRequest, onRejectRequest }: ValidatorDashboardProps) {
+  // --- Derivación de Datos para Estadísticas ---
+  // Filtra las solicitudes de NFT para obtener las pendientes de validación
+  // y las que ya han sido aprobadas y firmadas por un validador.
   const pendingRequests = nftRequests.filter(r => r.status === 'pending-validator');
-  const processingRequests = nftRequests.filter(r => r.status === 'blockchain-pending');
   const validatedRequests = nftRequests.filter(r => r.status === 'approved' && r.validatorSignature);
 
   return (
@@ -23,11 +25,11 @@ export function ValidatorDashboard({ nftRequests, onApproveRequest, onRejectRequ
           </div>
           <div>
             <h2>Centro de Validación Técnica</h2>
-            <p className="mt-2 opacity-90">
-              Verifica la autenticidad y registra NFTs en blockchain
-            </p>
+
           </div>
         </div>
+        {/* --- Notificación Condicional en el Encabezado --- */}
+        {/* Muestra un mensaje de alerta si hay solicitudes pendientes de validación. */}
         {pendingRequests.length > 0 && (
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mt-4">
             <div className="flex items-center gap-3">
@@ -40,7 +42,8 @@ export function ValidatorDashboard({ nftRequests, onApproveRequest, onRejectRequ
         )}
       </div>
 
-      {/* Stats */}
+      {/* --- Sección de KPIs (Indicadores Clave de Rendimiento) --- */}
+      {/* Muestra un resumen rápido de las estadísticas de validación. */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <div className="flex items-center gap-3">
@@ -64,17 +67,7 @@ export function ValidatorDashboard({ nftRequests, onApproveRequest, onRejectRequ
             </div>
           </div>
         </div>
-        <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Shield className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-blue-700 text-sm">Procesando</p>
-              <p className="text-blue-900">{processingRequests.length}</p>
-            </div>
-          </div>
-        </div>
+
         <div className="bg-green-50 rounded-xl p-6 border border-green-200">
           <div className="flex items-center gap-3">
             <div className="bg-green-100 p-3 rounded-full">
@@ -95,20 +88,21 @@ export function ValidatorDashboard({ nftRequests, onApproveRequest, onRejectRequ
           <div>
             <h4 className="text-blue-900 mb-2">Rol del Validador</h4>
             <p className="text-blue-800 text-sm mb-3">
-              Como validador técnico, eres responsable de verificar la autenticidad de las evidencias 
-              y ejecutar la firma final que registra el NFT en la blockchain institucional.
+              Como validador técnico, eres responsable de verificar la autenticidad de las evidencias.
             </p>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• Verificar la calidad y autenticidad de las evidencias presentadas</li>
               <li>• Confirmar que las firmas del docente y administrador sean válidas</li>
-              <li>• Ejecutar el registro final en blockchain</li>
               <li>• Garantizar la integridad del sistema de certificación</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Validation Center */}
+      {/* --- Integración del Centro de Validación --- */}
+      {/* Este componente delega la funcionalidad principal de listado y acción de validación
+          al componente `ValidationCenter`, pasándole las solicitudes y los callbacks
+          para aprobar o rechazar una solicitud. */}
       <ValidationCenter 
         requests={nftRequests}
         onApprove={onApproveRequest}

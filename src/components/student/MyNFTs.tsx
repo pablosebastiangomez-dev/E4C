@@ -7,8 +7,10 @@ interface MyNFTsProps {
 }
 
 export function MyNFTs({ nfts }: MyNFTsProps) {
+  // Estado para controlar qué NFT se muestra en el modal de detalles.
   const [selectedNFT, setSelectedNFT] = useState<NFTRequest | null>(null);
 
+  // Función auxiliar que devuelve un emoji basado en el nombre del logro del NFT.
   const getNFTEmoji = (name: string) => {
     if (name.includes('Excelencia')) return '🏆';
     if (name.includes('Proyecto') || name.includes('Innovador')) return '🚀';
@@ -22,6 +24,8 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
   return (
     <>
       <div className="space-y-6">
+        {/* --- Renderizado Condicional: Estado Vacío o Lista de NFTs --- */}
+        {/* Si el estudiante no tiene NFTs, se muestra un mensaje; de lo contrario, se renderiza la lista. */}
         {nfts.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Award className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -37,7 +41,7 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
                 <div>
                   <h3 className="text-gray-900">Mis NFTs de Mérito</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Logros certificados en blockchain
+
                   </p>
                 </div>
                 <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full">
@@ -46,6 +50,9 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
               </div>
             </div>
 
+            {/* --- Listado de NFTs del Estudiante --- */}
+            {/* Mapea sobre el array de NFTs para mostrar cada uno como una tarjeta clickable.
+                Al hacer clic, se selecciona el NFT para mostrar sus detalles en un modal. */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {nfts.map(nft => (
                 <button
@@ -73,7 +80,9 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
         )}
       </div>
 
-      {/* NFT Detail Modal */}
+      {/* --- Modal de Detalles del NFT --- */}
+      {/* Se renderiza condicionalmente cuando un NFT es seleccionado, mostrando información detallada
+          y las firmas de certificación. */}
       {selectedNFT && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden">
@@ -135,25 +144,8 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
                 </div>
               </div>
 
-              {selectedNFT.blockchainHash && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="text-gray-900 mb-2">Hash de Blockchain</h4>
-                  <p className="text-xs font-mono bg-white p-3 rounded border border-gray-200 break-all text-gray-600">
-                    {selectedNFT.blockchainHash}
-                  </p>
-                  {/* TODO: Blockchain Integration Point - Transaction Link */}
-                  {/* This hash would ideally be a clickable link to a blockchain explorer
-                      (e.g., Etherscan, Solscan, StellarExpert) to view the on-chain transaction details. */}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Este hash verifica la autenticidad del logro en la blockchain.
-                    (Aquí se podría añadir un enlace a un explorador de blockchain para ver la transacción).
-                  </p>
-                </div>
-              )}
-               {/* TODO: Blockchain Integration Point - NFT Metadata & Provenance */}
-               {/* In a fully integrated system, the NFT metadata (image, description, etc.)
-                   could also be stored on a decentralized file storage (e.g., IPFS)
-                   and linked via the blockchain. Ownership history could be queried on-chain. */}
+
+
             </div>
           </div>
         </div>

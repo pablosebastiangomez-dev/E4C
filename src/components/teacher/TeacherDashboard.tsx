@@ -13,14 +13,19 @@ interface TeacherDashboardProps {
 type TabView = 'tasks' | 'nft-request' | 'history';
 
 export function TeacherDashboard({ nftRequests, onCreateNFTRequest }: TeacherDashboardProps) {
+  // Estado para controlar la pestaña activa dentro del dashboard del docente.
   const [activeTab, setActiveTab] = useState<TabView>('tasks');
 
+  // Configuración de las pestañas de navegación para el dashboard.
+  // Cada objeto define una pestaña con su ID, etiqueta, icono y color para el estilo.
   const tabs = [
     { id: 'tasks' as TabView, label: 'Asignar Tokens', icon: Coins, color: 'indigo' },
     { id: 'nft-request' as TabView, label: 'Solicitar NFT de Mérito', icon: Award, color: 'purple' },
     { id: 'history' as TabView, label: 'Historial de Envíos', icon: History, color: 'blue' },
   ];
 
+  // Filtra las solicitudes de NFT para mostrar solo las que pertenecen al docente actual.
+  // 't1' es un ID de docente simulado para fines de demostración.
   const myRequests = nftRequests.filter(req => req.teacherId === 't1'); // Simular docente actual
 
   return (
@@ -33,7 +38,7 @@ export function TeacherDashboard({ nftRequests, onCreateNFTRequest }: TeacherDas
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Pestañas de Navegación del Dashboard */}
       <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -55,7 +60,9 @@ export function TeacherDashboard({ nftRequests, onCreateNFTRequest }: TeacherDas
         })}
       </div>
 
-      {/* Content */}
+      {/* --- Contenido Dinámico del Dashboard --- */}
+      {/* Muestra el componente correspondiente (Asignación de Tareas, Formulario de Solicitud de NFT o Historial de Envíos)
+          basado en la pestaña 'activeTab' seleccionada. */}
       <div>
         {activeTab === 'tasks' && <TaskAssignment />}
         {activeTab === 'nft-request' && <NFTRequestForm onSubmit={onCreateNFTRequest} />}

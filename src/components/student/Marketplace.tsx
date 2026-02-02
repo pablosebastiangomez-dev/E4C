@@ -1,42 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Coins, ShoppingBag, CheckCircle } from 'lucide-react';
 import { type Reward, type Student } from '../../types';
-import { useSupabaseCrud } from '../../hooks';
+
 
 interface MarketplaceProps {
   studentId: string; // Assuming studentId is passed as a prop
 }
 
 export function Marketplace({ studentId }: MarketplaceProps) {
-  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [userTokens, setUserTokens] = useState(0);
-  const [filterCategory, setFilterCategory] = useState<string>('Todos');
+  // --- Estados Locales del Componente ---
+  // Gestionan el comportamiento y la visualización específica del Marketplace.
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null); // Recompensa seleccionada para canjear.
+  const [showConfirmation, setShowConfirmation] = useState(false); // Controla la visibilidad de la notificación de éxito.
+  // Datos simulados para estudiantes y recompensas. En una app real, vendrían de un contexto o API.
+  const mockStudents: Student[] = [
+    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
+  ];
 
-  const {
-    data: rewards,
-    loading: rewardsLoading,
-    error: rewardsError,
-    updateItem: updateReward,
-    refresh: refreshRewards,
-  } = useSupabaseCrud<Reward>('rewards');
+  const mockRewards: Reward[] = [
+    { id: 'reward-1', name: 'Certificado de Reconocimiento', description: 'Certificado digital por tu esfuerzo académico.', cost: 50, category: 'Educación', image: '📜', available: 10 },
+    { id: 'reward-2', name: 'Descuento en Tienda Escolar', description: '10% de descuento en la tienda de la escuela.', cost: 75, category: 'Alimentos', image: '🛍️', available: 5 },
+    { id: 'reward-3', name: 'Pase VIP para Evento', description: 'Acceso exclusivo a un evento escolar.', cost: 100, category: 'Entretenimiento', image: '🌟', available: 3 },
+  ];
 
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-    updateItem: updateStudent,
-    refresh: refreshStudents,
-  } = useSupabaseCrud<Student>('students');
-
-  useEffect(() => {
-    if (students && studentId) {
-      const currentStudent = students.find((s) => s.id === studentId);
-      if (currentStudent) {
-        setUserTokens(currentStudent.tokens);
-      }
-    }
-  }, [students, studentId]);
+  const [rewards, setRewards] = useState<Reward[]>(mockRewards);
+  const [currentStudent, setCurrentStudent] = useState<Student | undefined>(
+    mockStudents.find((s) => s.id === studentId)
+  );
+  const [userTokens, setUserTokens] = useState(currentStudent?.tokens || 0); // Tokens del estudiante actual.
 
   const categories = [
     'Todos',
@@ -47,57 +38,61 @@ export function Marketplace({ studentId }: MarketplaceProps) {
     'Accesorios',
   ];
 
-  if (rewardsLoading || studentsLoading) {
-    return <div className="text-center py-8">Cargando recompensas...</div>;
-  }
+  const [filterCategory, setFilterCategory] = useState<string>('Todos');
 
-  if (rewardsError || studentsError) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Error al cargar recompensas o datos del estudiante: {rewardsError || studentsError}
-      </div>
-    );
-  }
-
-  const currentRewards = rewards || [];
-  const currentStudents = students || [];
-  const currentStudent = currentStudents.find((s) => s.id === studentId);
+  // Sincroniza los tokens del estudiante con el estado local 'userTokens' cada vez que el 'currentStudent' cambia.
+  useEffect(() => {
+    if (currentStudent) {
+      setUserTokens(currentStudent.tokens);
+    }
+  }, [currentStudent]);
 
 
+
+
+  // --- Lógica de Filtrado de Recompensas ---
+  // Filtra las recompensas mostradas basándose en la categoría seleccionada por el usuario.
   const filteredRewards =
     filterCategory === 'Todos'
-      ? currentRewards
-      : currentRewards.filter((r) => r.category === filterCategory);
+      ? rewards
+      : rewards.filter((r) => r.category === filterCategory);
 
+  // Maneja la selección inicial de una recompensa para mostrar el modal de confirmación.
   const handleRedeem = (reward: Reward) => {
     setSelectedReward(reward);
   };
 
+  // --- Lógica de Canje de Recompensa ---
+  // Esta función simula el proceso de canje.
+  // IMPORTANTE: Actualmente, los cambios son solo a nivel de estado local del componente.
+  // En una aplicación real, esto implicaría una interacción con un backend o contrato inteligente
+  // para actualizar los tokens del estudiante globalmente y registrar el canje.
   const confirmRedeem = async () => {
     if (selectedReward && currentStudent && userTokens >= selectedReward.cost) {
-      try {
-        // Update student tokens
-        await updateStudent(currentStudent.id, {
-          tokens: userTokens - selectedReward.cost,
-        });
+      // Actualizar tokens del estudiante localmente
+      setCurrentStudent((prevStudent) => {
+        if (prevStudent) {
+          const updatedStudent = { ...prevStudent, tokens: prevStudent.tokens - selectedReward.cost };
+          setUserTokens(updatedStudent.tokens);
+          return updatedStudent;
+        }
+        return prevStudent;
+      });
 
-        // Update reward available count
-        await updateReward(selectedReward.id, {
-          available: selectedReward.available - 1,
-        });
+      // Actualizar el contador de recompensas disponibles localmente
+      setRewards((prevRewards) =>
+        prevRewards.map((r) =>
+          r.id === selectedReward.id
+            ? { ...r, available: r.available - 1 }
+            : r
+        )
+      );
 
-        setUserTokens((prev) => prev - selectedReward.cost);
-        setShowConfirmation(true);
-        setTimeout(() => {
-          setShowConfirmation(false);
-          setSelectedReward(null);
-          refreshStudents(); // Refresh student data
-          refreshRewards(); // Refresh rewards data
-        }, 3000);
-      } catch (error: any) {
-        console.error('Error redeeming reward:', error.message);
-        // Handle error, maybe show a toast notification
-      }
+      setShowConfirmation(true); // Mostrar notificación de éxito
+      setTimeout(() => {
+        setShowConfirmation(false); // Ocultar notificación tras 3 segundos
+        setSelectedReward(null); // Cerrar modal de confirmación
+      }, 3000);
     }
   };
 
@@ -194,7 +189,8 @@ export function Marketplace({ studentId }: MarketplaceProps) {
         })}
       </div>
 
-      {/* Modal de Confirmación */}
+      {/* --- Renderizado Condicional de Modales y Notificaciones --- */}
+      {/* Modal de Confirmación de Canje */}
       {selectedReward && !showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -215,9 +211,8 @@ export function Marketplace({ studentId }: MarketplaceProps) {
                 <span className="text-indigo-600">{selectedReward.cost} tokens</span>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-gray-600">Balance después:</span>
                 <span className={userTokens - selectedReward.cost >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  {userTokens - selectedReward.cost} tokens
+                  Balance después: {userTokens - selectedReward.cost} tokens
                 </span>
               </div>
             </div>

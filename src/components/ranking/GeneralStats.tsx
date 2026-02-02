@@ -9,7 +9,8 @@ interface GeneralStatsProps {
 }
 
 export function GeneralStats({ nftRequests, students }: GeneralStatsProps) {
-  // Datos para gráficos
+  // --- Datos para Gráficos (Actualmente Falsos/Mocked) ---
+  // En una implementación real, estos datos se calcularían a partir de datos históricos o de la API.
   const weeklyActivity = [
     { day: 'Lun', tokens: 2340, nfts: 3 },
     { day: 'Mar', tokens: 2890, nfts: 5 },
@@ -35,6 +36,8 @@ export function GeneralStats({ nftRequests, students }: GeneralStatsProps) {
     { month: 'Dic', students: 156, tokens: 125450 },
   ];
 
+  // --- Cálculo de KPIs (Indicadores Clave de Rendimiento) ---
+  // Estos valores se derivan de los props recibidos (nftRequests y students).
   const approvedNFTs = nftRequests.filter(r => r.status === 'approved').length;
   const pendingNFTs = nftRequests.filter(r => r.status === 'pending-admin').length;
   const totalTokens = students.reduce((acc, student) => acc + student.tokens, 0);
@@ -83,7 +86,7 @@ export function GeneralStats({ nftRequests, students }: GeneralStatsProps) {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Actividad Semanal */}
+        {/* Gráfico de Barras: Muestra la distribución de Tokens y NFTs durante la semana. */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-gray-900 mb-4">Actividad Semanal</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -105,7 +108,7 @@ export function GeneralStats({ nftRequests, students }: GeneralStatsProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* NFTs por Categoría */}
+        {/* Gráfico Circular: Muestra la proporción de NFTs emitidos por categoría. */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-gray-900 mb-4">Distribución de NFTs por Categoría</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -130,7 +133,7 @@ export function GeneralStats({ nftRequests, students }: GeneralStatsProps) {
         </div>
       </div>
 
-      {/* Crecimiento Mensual */}
+      {/* Gráfico de Líneas: Muestra la tendencia de crecimiento de estudiantes y tokens. */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-gray-900 mb-4">Tendencia de Crecimiento (6 meses)</h3>
         <ResponsiveContainer width="100%" height={300}>

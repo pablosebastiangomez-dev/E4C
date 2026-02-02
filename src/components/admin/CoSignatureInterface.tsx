@@ -9,11 +9,15 @@ interface CoSignatureInterfaceProps {
   onClose: () => void;
 }
 
+// Componente modal para la interfaz de co-firma de un administrador.
+// Permite a un administrador dar su aprobación final (co-firmar) o rechazar una solicitud de NFT.
 export function CoSignatureInterface({ request, onApprove, onReject, onClose }: CoSignatureInterfaceProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isApproving, setIsApproving] = useState(false);
 
+  // Maneja la aprobación de la solicitud.
+  // Simula una llamada asíncrona (ej: a un contrato inteligente) con un setTimeout.
   const handleApprove = () => {
     setIsApproving(true);
     setTimeout(() => {
@@ -41,94 +45,6 @@ export function CoSignatureInterface({ request, onApprove, onReject, onClose }: 
                 <h3>Interfaz de Co-Firma Multi-sig</h3>
                 <p className="text-sm opacity-90 mt-1">
                   Valida y certifica la emisión del NFT
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-          {/* Información del Estudiante */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
-            <div className="flex items-center gap-3 mb-4">
-              <User className="w-5 h-5 text-indigo-600" />
-              <h4 className="text-indigo-900">Información del Estudiante</h4>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Nombre</p>
-                <p className="text-gray-900">{request.studentName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">ID de Estudiante</p>
-                <p className="text-gray-900">{request.studentId}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Detalles del Logro */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              <h4 className="text-gray-900">Detalles del Logro</h4>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h4 className="text-gray-900 mb-3">{request.achievementName}</h4>
-              <p className="text-gray-700 mb-4">{request.description}</p>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-gray-600 mt-1" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600 mb-1">Evidencia presentada:</p>
-                    <p className="text-sm text-gray-900">{request.evidence}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Docente que Avala */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <h4 className="text-gray-900">Docente Certificador (Firma 1 de 2)</h4>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl">
-                  {request.teacherName.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <p className="text-gray-900">{request.teacherName}</p>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(request.teacherSignature?.timestamp || '').toLocaleString('es-ES')}</span>
-                  </div>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Estado de Co-Firma */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-6">
-            <div className="flex items-start gap-3">
-              <div className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm">
-                2/2
-              </div>
-              <div>
-                <p className="text-gray-900 mb-1">Tu Firma Como Administrador</p>
-                <p className="text-sm text-gray-600">
-                  Al aprobar, tu firma digital será registrada junto con la del docente,
-                  y el NFT será emitido de forma inmutable en la blockchain institucional.
-                </p>
               </div>
             </div>
           </div>
@@ -148,7 +64,11 @@ export function CoSignatureInterface({ request, onApprove, onReject, onClose }: 
           )}
         </div>
 
-        {/* Actions */}
+        {/* Acciones del Administrador */}
+        {/* Renderiza los botones de acción condicionalmente.
+            - Muestra 'Rechazar' y 'Aprobar' por defecto.
+            - Si se hace clic en 'Rechazar', muestra 'Cancelar' y 'Confirmar Rechazo'.
+        */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           {!showRejectForm ? (
             <div className="flex gap-3">
@@ -171,12 +91,12 @@ export function CoSignatureInterface({ request, onApprove, onReject, onClose }: 
                 {isApproving ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Registrando en Blockchain...</span>
+                    <span>Aprobando...</span>
                   </>
                 ) : (
                   <>
-                    <Shield className="w-5 h-5" />
-                    <span>Aprobar y Registrar en Blockchain</span>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Aprobar</span>
                   </>
                 )}
               </button>
@@ -207,21 +127,7 @@ export function CoSignatureInterface({ request, onApprove, onReject, onClose }: 
           )}
         </div>
 
-        {/* Approval Animation Overlay */}
-        {isApproving && (
-          <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center">
-            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-full p-8 mb-6 animate-pulse">
-              <Shield className="w-16 h-16 text-white" />
-            </div>
-            <h3 className="text-gray-900 mb-2">Sellado Inmutable en Progreso</h3>
-            <p className="text-gray-600 mb-6">Registrando NFT en el ledger institucional...</p>
-            <div className="flex gap-2">
-              <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

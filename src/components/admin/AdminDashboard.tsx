@@ -13,6 +13,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ students, teachers, onCreateStudent, onCreateTeacher }: AdminDashboardProps) {
+  // Estado para controlar la vista activa (pestaña seleccionada).
   const [activeView, setActiveView] = useState<'students' | 'teachers' | 'approve'>('students');
 
   return (
@@ -69,7 +70,8 @@ export function AdminDashboard({ students, teachers, onCreateStudent, onCreateTe
         </button>
       </div>
 
-      {/* Content */}
+      {/* Contenido dinámico según la vista activa */}
+      {/* Aquí se renderiza uno de los tres componentes de gestión basados en el estado 'activeView'. */}
       <div>
         {activeView === 'students' && (
           <StudentManagement students={students} onCreateStudent={onCreateStudent} />

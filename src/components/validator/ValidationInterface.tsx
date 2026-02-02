@@ -14,6 +14,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
   const [rejectionReason, setRejectionReason] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
+  // Este es el código que aprueba el envío de NFT
   const handleApprove = () => {
     setIsValidating(true);
     setTimeout(() => {
@@ -39,9 +40,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
               </div>
               <div>
                 <h3>Validación Técnica de NFT</h3>
-                <p className="mt-2 opacity-90">
-                  Firma final para registro en blockchain
-                </p>
+
               </div>
             </div>
             <button
@@ -128,19 +127,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
             </div>
           </div>
 
-          {/* Blockchain Info */}
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6">
-            <div className="flex items-start gap-3">
-              <Zap className="w-6 h-6 text-blue-600 mt-1" />
-              <div>
-                <h4 className="text-blue-900 mb-2">Registro en Blockchain</h4>
-                <p className="text-sm text-blue-800">
-                  Al aprobar esta solicitud, se ejecutará la transacción de registro en la blockchain 
-                  institucional. El NFT será inmutable y verificable públicamente.
-                </p>
-              </div>
-            </div>
-          </div>
+
 
           {/* Rejection Form */}
           {showRejectForm && (
@@ -180,12 +167,12 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
                 {isValidating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Ejecutando Registro...</span>
+                    <span>Validando...</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5" />
-                    <span>Validar y Registrar en Blockchain</span>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Validar</span>
                   </>
                 )}
               </button>
@@ -216,21 +203,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
           )}
         </div>
 
-        {/* Validation Animation Overlay */}
-        {isValidating && (
-          <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center">
-            <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-full p-8 mb-6 animate-pulse">
-              <Zap className="w-16 h-16 text-white" />
-            </div>
-            <h3 className="text-gray-900 mb-2">Ejecutando Transacción Blockchain</h3>
-            <p className="text-gray-600 mb-6">Registrando NFT en el ledger distribuido...</p>
-            <div className="flex gap-2">
-              <div className="w-3 h-3 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

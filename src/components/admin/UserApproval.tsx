@@ -1,46 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { User } from '@supabase/supabase-js';
+import React, { useState } from 'react';
 
+interface MockUser {
+  id: string;
+  email: string;
+  user_metadata: {
+    role: string;
+  };
+}
+
+// NOTA: Este componente actualmente utiliza su propia lista de usuarios falsos (mock data).
+// En una aplicación real, estos datos vendrían del estado global o de una API.
 const UserApproval: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<MockUser[]>([
+    { id: 'mock-user-1', email: 'pending.student@example.com', user_metadata: { role: 'unapproved' } },
+    { id: 'mock-user-2', email: 'pending.teacher@example.com', user_metadata: { role: 'unapproved' } },
+  ]);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    const { data: { users }, error } = await supabase.auth.admin.listUsers();
-    if (error) {
-      setError(error.message);
-    } else {
-      setUsers(users.filter(user => user.user_metadata.role === 'unapproved'));
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const approveUser = async (id: string) => {
-    const { data: { user }, error } = await supabase.auth.admin.updateUserById(
-      id,
-      { user_metadata: { role: 'student' } }
+  // Función para aprobar un usuario. Cambia el rol del usuario a 'student'.
+  const approveUser = (id: string) => {
+    setUsers(prevUsers =>
+      prevUsers.map(user =>
+        user.id === id ? { ...user, user_metadata: { role: 'student' } } : user
+      )
     );
-    if (error) {
-      setError(error.message);
-    } else {
-      fetchUsers(); // Refresh the list
-    }
   };
-
-  if (loading) {
-    return <div>Loading users...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
-  }
 
   return (
     <div className="bg-white shadow-md rounded-lg p-6">
@@ -55,12 +38,16 @@ const UserApproval: React.FC = () => {
                 <p className="font-medium">{user.email}</p>
                 <p className="text-sm text-gray-500">Role: {user.user_metadata.role}</p>
               </div>
-              <button
-                onClick={() => approveUser(user.id)}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              >
-                Approve
-              </button>
+              {user.user_metadata.role === 'unapproved' ? (
+                <button
+                  onClick={() => approveUser(user.id)}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                >
+                  Approve
+                </button>
+              ) : (
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Approved</span>
+              )}
             </li>
           ))}
         </ul>

@@ -4,7 +4,7 @@ import { MyTokens } from './MyTokens';
 import { MyNFTs } from './MyNFTs';
 import { Marketplace } from './Marketplace';
 import type { NFTRequest } from '../../App';
-import { useSupabaseCrud } from '../../hooks';
+
 import { type Student } from '../../types';
 
 interface StudentDashboardProps {
@@ -15,33 +15,38 @@ interface StudentDashboardProps {
 type StudentView = 'tokens' | 'nfts' | 'marketplace';
 
 export function StudentDashboard({ studentId, nftRequests }: StudentDashboardProps) {
+  // Estado para controlar la vista activa dentro del dashboard del estudiante.
   const [activeView, setActiveView] = useState<StudentView>('tokens');
-  const { data: students, loading, error } = useSupabaseCrud<Student>('students');
-  const [student, setStudent] = useState<Student | null>(null);
 
-  useEffect(() => {
-    if (students) {
-      setStudent(students.find(s => s.id === studentId) || null);
-    }
-  }, [students, studentId]);
+  // --- Datos de Estudiante Simulados (Mock Data) ---
+  // Este objeto 'mockStudent' se utiliza para simular el perfil del estudiante.
+  // En una aplicación real, el perfil completo del estudiante provendría de una API o contexto global.
+  const mockStudent: Student = {
+    id: studentId,
+    name: 'Demo Student',
+    email: 'demo.student@example.com',
+    enrollmentDate: '2023-09-01',
+    tokens: 250,
+    tasksCompleted: 15,
+    nfts: [], // This will be filtered from nftRequests
+    grade: '10th',
+  };
+  const student = mockStudent; // Se usa 'mockStudent' como el estudiante actual.
 
+  // --- Derivación de Datos: Mis NFTs ---
+  // Filtra las solicitudes de NFT para obtener solo las que pertenecen al estudiante actual
+  // y que han sido aprobadas.
   const myNFTs = nftRequests.filter(
     req => req.studentId === studentId && req.status === 'approved'
   );
 
+  // Configuración de las pestañas de navegación para el dashboard del estudiante.
+  // Cada objeto define una pestaña con su ID, etiqueta, icono y color para el estilo.
   const tabs = [
     { id: 'tokens' as StudentView, label: 'Mis Tokens', icon: Coins, color: 'indigo' },
     { id: 'nfts' as StudentView, label: 'Mis Logros NFT', icon: Trophy, color: 'purple' },
     { id: 'marketplace' as StudentView, label: 'Marketplace', icon: ShoppingBag, color: 'pink' },
   ];
-
-  if (loading) {
-    return <div className="text-center py-8">Cargando datos del estudiante...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-600">Error al cargar datos: {error}</div>;
-  }
 
   return (
     <div className="space-y-6">
@@ -92,7 +97,7 @@ export function StudentDashboard({ studentId, nftRequests }: StudentDashboardPro
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Pestañas de Navegación del Dashboard */}
       <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -114,7 +119,9 @@ export function StudentDashboard({ studentId, nftRequests }: StudentDashboardPro
         })}
       </div>
 
-      {/* Content */}
+      {/* --- Contenido Dinámico del Dashboard --- */}
+      {/* Muestra el componente correspondiente (Mis Tokens, Mis NFTs o Marketplace)
+          basado en la pestaña 'activeView' seleccionada. */}
       <div>
         {activeView === 'tokens' && <MyTokens studentId={studentId} />}
         {activeView === 'nfts' && <MyNFTs nfts={myNFTs} />}

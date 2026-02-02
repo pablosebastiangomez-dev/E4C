@@ -1,48 +1,62 @@
 import { Coins, Award, ArrowRight } from 'lucide-react';
 import { type Student, type NFT } from '../../types';
-import { useSupabaseCrud } from '../../hooks';
+
 
 interface WalletProps {
   studentId: string; // Add studentId as a prop
-  onViewNFT: (nftId: string) => void;
-  onNavigateToMarketplace: () => void;
+  onViewNFT: (nftId: string) => void; // Función callback para ver detalles de un NFT en un modal o nueva vista
+  onNavigateToMarketplace: () => void; // Función callback para navegar al Marketplace
 }
 
 export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: WalletProps) {
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useSupabaseCrud<Student>('students');
-  const {
-    data: nfts,
-    loading: nftsLoading,
-    error: nftsError,
-  } = useSupabaseCrud<NFT>('nfts');
+  // --- Datos Simulados (Mock Data) ---
+  // En una aplicación real, estos datos vendrían de una API o un contexto global de la aplicación.
+  const mockStudents: Student[] = [
+    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: ['nft-1', 'nft-2'], grade: '10th' },
+  ];
 
-  if (studentsLoading || nftsLoading) {
-    return <div className="text-center py-8">Cargando billetera...</div>;
-  }
+  const mockNfts: NFT[] = [
+    {
+      id: 'nft-1',
+      name: 'Pioneer Innovator Award',
+      description: 'Awarded for outstanding innovation in the annual science fair.',
+      image: '🚀',
+      issuedDate: '2023-05-15T10:00:00Z',
+      category: 'excellence',
+      signatures: {
+        teacher: 'Prof. Alex Johnson',
+        admin: 'Dr. Emily White',
+        timestamp: '2023-05-20T11:30:00Z',
+      },
+    },
+    {
+      id: 'nft-2',
+      name: 'Community Leader Recognition',
+      description: 'Recognizing significant contributions to school community service initiatives.',
+      image: '🤝',
+      issuedDate: '2023-03-01T09:00:00Z',
+      category: 'achievement',
+      signatures: {
+        teacher: 'Ms. Sarah Davis',
+        admin: 'Dr. Emily White',
+        timestamp: '2023-03-05T14:00:00Z',
+      },
+    },
+  ];
 
-  if (studentsError || nftsError) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Error al cargar datos de la billetera: {studentsError || nftsError}
-      </div>
-    );
-  }
+  // --- Lógica de Filtrado y Asociación de Datos ---
+  // Busca el estudiante actual entre los datos simulados.
+  const currentStudent = mockStudents.find((s) => s.id === studentId);
 
-  const currentStudent = students?.find((s) => s.id === studentId);
+  // --- Renderizado Condicional: Estudiante No Encontrado ---
+  // Si no se encuentra el estudiante con el ID proporcionado, se muestra un mensaje de error.
   if (!currentStudent) {
     return <div className="text-center py-8 text-red-600">Estudiante no encontrado.</div>;
   }
 
-  // Filter NFTs based on the student's NFT IDs
-  // TODO: Blockchain Integration Point - Ownership Verification
-  // In a real blockchain integration, studentNFTs would be fetched or verified directly from the blockchain
-  // based on the student's wallet address. The 'nfts' table in Supabase might store metadata and
-  // a reference to the on-chain NFT.
-  const studentNFTs = (nfts || []).filter(nft => currentStudent.nfts.includes(nft.id));
+  // Filtra los NFTs simulados para obtener solo aquellos que el estudiante actual "posee".
+  const studentNFTs = mockNfts.filter(nft => currentStudent.nfts.includes(nft.id));
+
 
   return (
     <div className="space-y-6">
@@ -59,12 +73,10 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
           </div>
           <span className="opacity-90">Balance de Tokens</span>
         </div>
-        {/* TODO: Blockchain Integration Point - Token Balance */}
-        {/* The token balance would typically be read directly from the blockchain for the student's wallet address.
-            Supabase could act as a cache or store historical token transaction data. */}
+
         <p className="mb-6">{currentStudent.tokens}</p>
         <button
-          onClick={onNavigateToMarketplace}
+          onClick={onNavigateToMarketplace} // Llama a la función prop para navegar al Marketplace
           className="bg-white text-indigo-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
         >
           <span>Canjear Tokens</span>
@@ -86,6 +98,8 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
           </div>
         </div>
         <div className="p-6">
+          {/* --- Renderizado Condicional: No hay NFTs --- */}
+          {/* Si el estudiante no tiene NFTs, se muestra un mensaje; de lo contrario, se renderiza el grid de NFTs. */}
           {(studentNFTs || []).length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🏆</div>
@@ -98,7 +112,7 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
               {(studentNFTs || []).map(nft => (
                 <button
                   key={nft.id}
-                  onClick={() => onViewNFT(nft.id)}
+                  onClick={() => onViewNFT(nft.id)} // Llama a la función prop para ver los detalles del NFT
                   className="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all text-center bg-gradient-to-b from-white to-gray-50"
                 >
                   <div className="text-6xl mb-4">{nft.image}</div>

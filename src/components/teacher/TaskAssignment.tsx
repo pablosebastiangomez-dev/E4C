@@ -1,50 +1,49 @@
 import { useState } from 'react';
 import { Search, Coins, Users, CheckCircle } from 'lucide-react';
 import { type Student, type Task, type TokenTransaction } from '../../types';
-import { useSupabaseCrud } from '../../hooks';
+
 
 export function TaskAssignment() {
+  // --- Estados Locales del Componente ---
+  // `selectedStudents`: Un Set para almacenar los IDs de los estudiantes seleccionados para la asignación.
+  // `selectedTask`: El ID de la tarea seleccionada en el dropdown.
+  // `searchQuery`: Texto para filtrar la lista de estudiantes.
+  // `showSuccess`: Controla la visibilidad de la notificación de éxito.
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [selectedTask, setSelectedTask] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-    updateItem: updateStudent,
-    refresh: refreshStudents,
-  } = useSupabaseCrud<Student>('students');
+  // --- Datos Simulados (Mock Data) ---
+  // Estos datos representan estudiantes y tareas disponibles.
+  // IMPORTANTE: Los cambios realizados en este componente son LOCALES
+  // y no se propagan al estado global de la aplicación (e.g., App.tsx).
+  // En una aplicación real, se usaría un contexto o un servicio de API
+  // para gestionar el estado global.
+  const initialStudents: Student[] = [
+    { id: 'student-1', name: 'Alice Smith', email: 'alice.smith@example.com', tokens: 150, tasksCompleted: 10, nfts: [], grade: '10th' },
+    { id: 'student-2', name: 'Bob Johnson', email: 'bob.johnson@example.com', tokens: 200, tasksCompleted: 12, nfts: [], grade: '11th' },
+    { id: 'student-3', name: 'Charlie Brown', email: 'charlie.brown@example.com', tokens: 75, tasksCompleted: 5, nfts: [], grade: '9th' },
+  ];
 
-  const {
-    data: tasks,
-    loading: tasksLoading,
-    error: tasksError,
-  } = useSupabaseCrud<Task>('tasks');
+  const initialTasks: Task[] = [
+    { id: 'task-1', title: 'Ensayo sobre Historia Antigua', subject: 'Historia', dueDate: '2024-03-15', points: 50, status: 'pending' },
+    { id: 'task-2', title: 'Resolución de Problemas de Álgebra', subject: 'Matemáticas', dueDate: '2024-03-10', points: 30, status: 'pending' },
+    { id: 'task-3', title: 'Proyecto de Ciencias: Sistema Solar', subject: 'Ciencias', dueDate: '2024-03-20', points: 100, status: 'pending' },
+  ];
 
-  const { createItem: createTokenTransaction } = useSupabaseCrud<TokenTransaction>('token_transactions');
+  const [currentStudents, setCurrentStudents] = useState<Student[]>(initialStudents);
+  const [currentTasks, setCurrentTasks] = useState<Task[]>(initialTasks);
 
-  if (studentsLoading || tasksLoading) {
-    return <div className="text-center py-8">Cargando asignación de tareas...</div>;
-  }
-
-  if (studentsError || tasksError) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Error al cargar datos para asignación: {studentsError || tasksError}
-      </div>
-    );
-  }
-
-  const currentStudents = students || [];
-  const currentTasks = tasks || [];
-
+  // --- Lógica de Filtrado de Estudiantes ---
+  // Filtra la lista de estudiantes basándose en la cadena de búsqueda.
   const filteredStudents = currentStudents.filter(student =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.grade.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // --- Funciones de Selección de Estudiantes ---
+  // `toggleStudent`: Añade o quita un estudiante individual del Set de seleccionados.
   const toggleStudent = (studentId: string) => {
     const newSelected = new Set(selectedStudents);
     if (newSelected.has(studentId)) {
@@ -55,55 +54,49 @@ export function TaskAssignment() {
     setSelectedStudents(newSelected);
   };
 
+  // `toggleAll`: Selecciona o deselecciona todos los estudiantes filtrados.
   const toggleAll = () => {
     if (selectedStudents.size === filteredStudents.length) {
-      setSelectedStudents(new Set());
+      setSelectedStudents(new Set()); // Deseleccionar todos
     } else {
-      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
+      setSelectedStudents(new Set(filteredStudents.map(s => s.id))); // Seleccionar todos
     }
   };
 
+  // --- Lógica de Asignación de Tokens ---
+  // Asigna tokens a los estudiantes seleccionados por la tarea elegida.
+  // Los cambios son locales al estado de este componente.
   const handleAssign = async () => {
     if (selectedStudents.size > 0 && selectedTask) {
       const taskData = currentTasks.find(t => t.id === selectedTask);
       if (!taskData) return;
 
       try {
-        for (const studentId of selectedStudents) {
-          const student = currentStudents.find(s => s.id === studentId);
-          if (student) {
-            // Update student's tokens
-            await updateStudent(student.id, {
-              tokens: student.tokens + taskData.points,
-            });
-
-            // Create a token transaction record
-            await createTokenTransaction({
-              studentId: student.id,
-              studentName: student.name,
-              amount: taskData.points,
-              type: 'earn',
-              description: `Completó tarea: ${taskData.title}`,
-              date: new Date().toISOString(),
-              teacherId: 'current_teacher_id', // TODO: Get actual teacher ID from auth
-              teacherName: 'Current Teacher', // TODO: Get actual teacher name from auth
-            });
-          }
-        }
-        setShowSuccess(true);
+        setCurrentStudents(prevStudents =>
+          prevStudents.map(student => {
+            if (selectedStudents.has(student.id)) {
+              return {
+                ...student,
+                tokens: student.tokens + taskData.points, // Actualiza los tokens localmente
+              };
+            }
+            return student;
+          })
+        );
+        setShowSuccess(true); // Muestra la notificación de éxito
         setTimeout(() => {
           setShowSuccess(false);
-          setSelectedStudents(new Set());
-          setSelectedTask('');
-          refreshStudents(); // Refresh student data after updates
+          setSelectedStudents(new Set()); // Limpia la selección
+          setSelectedTask(''); // Limpia la tarea seleccionada
         }, 2000);
       } catch (error: any) {
         console.error('Error assigning tokens:', error.message);
-        // Handle error, e.g., show an error message
       }
     }
   };
 
+  // --- Cálculos Dinámicos ---
+  // Calcula los tokens totales a asignar basándose en la tarea y estudiantes seleccionados.
   const selectedTaskData = currentTasks.find(t => t.id === selectedTask);
   const totalTokens = selectedTaskData ? selectedTaskData.points * selectedStudents.size : 0;
 

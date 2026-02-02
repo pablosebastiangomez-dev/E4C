@@ -6,6 +6,17 @@ interface SubmissionHistoryProps {
 }
 
 export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
+  // --- Procesamiento de Datos para Estadísticas ---
+  // Calcula el número de solicitudes pendientes, aprobadas y rechazadas
+  // para mostrar un resumen en la parte superior del dashboard.
+  const pendingCount = requests.filter(r => r.status === 'pending-admin').length;
+  const approvedCount = requests.filter(r => r.status === 'approved').length;
+  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+
+  // --- Función Auxiliar para Configuración de Estado Visual ---
+  // Esta función devuelve un objeto de configuración (icono, etiqueta, colores)
+  // que se utiliza para renderizar dinámicamente la insignia y el estilo de cada solicitud
+  // según su estado actual. Centraliza la lógica de presentación del estado.
   const getStatusConfig = (status: NFTRequest['status']) => {
     switch (status) {
       case 'pending-admin':
@@ -17,20 +28,10 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
           textColor: 'text-orange-700',
           borderColor: 'border-orange-200',
         };
-      case 'blockchain-pending':
-        return {
-          icon: Loader2,
-          label: 'Registrando en Blockchain',
-          color: 'blue',
-          bgColor: 'bg-blue-50',
-          textColor: 'text-blue-700',
-          borderColor: 'border-blue-200',
-          animate: true,
-        };
       case 'approved':
         return {
           icon: CheckCircle,
-          label: 'Aprobado y Registrado',
+          label: 'Aprobado',
           color: 'green',
           bgColor: 'bg-green-50',
           textColor: 'text-green-700',
@@ -56,10 +57,6 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
         };
     }
   };
-
-  const pendingCount = requests.filter(r => r.status === 'pending-admin').length;
-  const approvedCount = requests.filter(r => r.status === 'approved').length;
-  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
   return (
     <div className="space-y-6">
@@ -137,9 +134,12 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
                       <p className="text-sm text-gray-900">{request.evidence}</p>
                     </div>
 
-                    {/* Estado de Firma */}
+                    {/* --- Estado de Firma --- */}
+                    {/* Renderizado condicional para mostrar el estado de las firmas del docente y del administrador.
+                        La firma del administrador es la más compleja, ya que puede ser aprobada, rechazada
+                        (con una razón de rechazo) o pendiente. */}
                     <div className="space-y-2">
-                      {/* Firma del Docente */}
+                      {/* Firma del Docente (siempre presente si la solicitud existe) */}
                       <div className="flex items-center gap-3 text-sm">
                         <CheckCircle className="w-5 h-5 text-green-600" />
                         <div className="flex-1">
@@ -150,7 +150,7 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
                         </div>
                       </div>
 
-                      {/* Firma del Admin */}
+                      {/* Firma del Administrador (condicional) */}
                       <div className="flex items-center gap-3 text-sm">
                         {request.adminSignature ? (
                           <>
@@ -185,35 +185,9 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
                       </div>
                     </div>
 
-                    {/* Hash de Blockchain */}
-                    {request.blockchainHash && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex items-start gap-2">
-                          <ShieldCheck className="w-5 h-5 text-green-600 mt-1" />
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-900 mb-1">Registrado en Blockchain</p>
-                            <p className="text-xs font-mono bg-white p-2 rounded border border-gray-200 break-all text-gray-600">
-                              {request.blockchainHash}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Indicador de Blockchain Pending */}
-                    {request.status === 'blockchain-pending' && (
-                      <div className="mt-4 pt-4 border-t border-blue-200">
-                        <div className="flex items-center gap-3 text-blue-700">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <div>
-                            <p className="text-sm">Procesando transacción en la red...</p>
-                            <p className="text-xs opacity-75">
-                              Los nodos están validando y registrando el NFT
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+
+
                   </div>
                 );
               })}

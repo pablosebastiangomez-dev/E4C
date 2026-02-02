@@ -14,14 +14,19 @@ interface RankingDashboardProps {
 type RankingView = 'tokens' | 'nfts' | 'stats';
 
 export function RankingDashboard({ nftRequests, students }: RankingDashboardProps) {
+  // Estado para controlar la vista activa dentro del dashboard de rankings (por tokens, NFTs o estadísticas generales).
   const [activeView, setActiveView] = useState<RankingView>('tokens');
 
+  // Configuración de las pestañas de navegación para el dashboard.
+  // Cada objeto define una pestaña con su ID, etiqueta, icono y color para el estilo.
   const tabs = [
     { id: 'tokens' as RankingView, label: 'Ranking por Tokens', icon: Trophy, color: 'yellow' },
     { id: 'nfts' as RankingView, label: 'Ranking por NFTs', icon: Medal, color: 'purple' },
     { id: 'stats' as RankingView, label: 'Estadísticas Generales', icon: TrendingUp, color: 'blue' },
   ];
 
+  // --- Cálculo de Estadísticas Resumidas para la Vista General ---
+  // Estos valores se derivan de los props 'students' y 'nftRequests' para mostrar un resumen rápido.
   const totalStudents = students.length;
   const totalTokens = students.reduce((acc, student) => acc + student.tokens, 0);
   const approvedNFTs = nftRequests.filter(r => r.status === 'approved').length;
@@ -92,7 +97,7 @@ export function RankingDashboard({ nftRequests, students }: RankingDashboardProp
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Pestañas de Navegación del Dashboard */}
       <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -114,7 +119,8 @@ export function RankingDashboard({ nftRequests, students }: RankingDashboardProp
         })}
       </div>
 
-      {/* Content */}
+      {/* Contenido Dinámico del Dashboard */}
+      {/* Muestra el componente de ranking o estadísticas correspondiente a la pestaña activa. */}
       <div>
         {activeView === 'tokens' && <LeaderboardTokens students={students} />}
         {activeView === 'nfts' && <LeaderboardNFTs nftRequests={nftRequests} />}

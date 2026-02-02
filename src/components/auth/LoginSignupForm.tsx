@@ -3,6 +3,7 @@ import { useAuth } from '../../authContext';
 import logo from '../../assets/Logo Edu&Chain.png';
 
 export function LoginSignupForm() {
+  // Estado para alternar entre el formulario de 'Login' y 'Signup'.
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +12,9 @@ export function LoginSignupForm() {
 
   const { signIn, signUp } = useAuth();
 
+  // Maneja el envío del formulario.
+  // Llama a 'signIn' o 'signUp' del contexto de autenticación dependiendo del modo actual.
+  // Gestiona los estados de carga y error durante la operación asíncrona.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

@@ -13,7 +13,8 @@ interface StudentNFTCount {
 }
 
 export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
-  // Agrupar NFTs por estudiante
+  // --- Agregación y Cómputo del Ranking ---
+  // 1. Se agrupan los NFTs aprobados por estudiante usando un Map para eficiencia.
   const studentNFTMap = new Map<string, StudentNFTCount>();
   
   nftRequests.filter(req => req.status === 'approved').forEach(nft => {
@@ -31,8 +32,13 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
     }
   });
 
+  // 2. Se convierte el Map a un array y se ordena para crear el ranking.
   const sortedStudents = Array.from(studentNFTMap.values()).sort((a, b) => b.nftCount - a.nftCount);
 
+  // --- Funciones Auxiliares de UI ---
+  // Estas funciones ayudan a mantener el JSX limpio y legible.
+
+  // Devuelve un icono de medalla o número según la posición en el ranking.
   const getMedalIcon = (position: number) => {
     switch (position) {
       case 0:
@@ -46,6 +52,7 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
     }
   };
 
+  // Devuelve clases de CSS para el fondo de la tarjeta según la posición.
   const getMedalBg = (position: number) => {
     switch (position) {
       case 0:
@@ -59,6 +66,7 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
     }
   };
 
+  // Asigna un emoji a un NFT basado en palabras clave en su nombre.
   const getNFTEmoji = (name: string) => {
     if (name.includes('Excelencia')) return '🏆';
     if (name.includes('Proyecto') || name.includes('Innovador')) return '🚀';
@@ -83,7 +91,9 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top 3 Podium */}
+      {/* Renderizado del Podio para el Top 3 */}
+      {/* Si hay al menos 3 estudiantes, se muestra una sección especial para ellos
+          con un diseño de podio (2-1-3) y estilos destacados. */}
       {sortedStudents.length >= 3 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sortedStudents.slice(0, 3).map((student, index) => (
@@ -127,7 +137,7 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
         </div>
       )}
 
-      {/* Rest of Rankings */}
+      {/* Renderizado del resto del ranking (posiciones 4 en adelante) */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex items-center gap-2">

@@ -6,8 +6,8 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ValidatorDashboard } from './components/validator/ValidatorDashboard';
 import { RankingDashboard } from './components/ranking/RankingDashboard';
 import { type Student, type Teacher } from './types';
-import { useSupabaseCrud } from './hooks';
-import { LoginSignupForm } from './components/auth/LoginSignupForm';
+
+
 import { useAuth } from './authContext';
 import { AuthStatus } from './components/auth/AuthStatus';
 
@@ -23,21 +23,7 @@ export interface NFTRequest {
   requestDate: string;
   teacherName: string;
   teacherId: string;
-  status: 'pending-admin' | 'pending-validator' | 'approved' | 'rejected' | 'blockchain-pending' | 'blockchain-confirmed';
-  teacherSignature?: {
-    name: string;
-    timestamp: string;
-  };
-  adminSignature?: {
-    name: string;
-    timestamp: string;
-  };
-  validatorSignature?: {
-    name: string;
-    timestamp: string;
-  };
-  rejectionReason?: string;
-  blockchainHash?: string;
+  status: 'pending-admin' | 'pending-validator' | 'approved' | 'rejected';
 }
 
 export interface TokenTransaction {
@@ -57,36 +43,46 @@ export default function App() {
   const userRole = user?.user_metadata?.role as UserRole || 'unauthenticated';
   const currentStudentId = user?.id;
 
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-    createItem: createStudent,
-  } = useSupabaseCrud<Student>('students');
-  const {
-    data: teachers,
-    loading: teachersLoading,
-    error: teachersError,
-    createItem: createTeacher,
-  } = useSupabaseCrud<Teacher>('teachers');
+  const initialStudents: Student[] = [
+    { id: 'student-1', name: 'Alice Smith', email: 'alice.smith@example.com', tokens: 150, tasksCompleted: 10, nfts: [], grade: '10th' },
+    { id: 'student-2', name: 'Bob Johnson', email: 'bob.johnson@example.com', tokens: 200, tasksCompleted: 12, nfts: [], grade: '11th' },
+    { id: 'student-3', name: 'Charlie Brown', email: 'charlie.brown@example.com', tokens: 75, tasksCompleted: 5, nfts: [], grade: '9th' },
+  ];
+
+  const initialTeachers: Teacher[] = [
+    { id: 'teacher-1', name: 'Prof. Garcia', email: 'prof.garcia@example.com', subjects: ['Math', 'Physics'] },
+    { id: 'teacher-2', name: 'Prof. Rodriguez', email: 'prof.rodriguez@example.com', subjects: ['Literature', 'History'] },
+  ];
+
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers);
   
+  // Estado central que gestiona las solicitudes de NFTs en toda la aplicación.
   const [nftRequests, setNftRequests] = useState<NFTRequest[]>([]);
 
+  // --- Manejadores de Estado (State Handlers) ---
+  // Las siguientes funciones modifican el estado principal de la aplicación.
+  // Se pasan como props a los componentes hijos para permitirles actualizar el estado global.
+
   const handleCreateStudent = async (student: Omit<Student, 'id' | 'tokens' | 'tasksCompleted' | 'nfts'>) => {
-    await createStudent({
+    const newStudent: Student = {
       ...student,
+      id: `student-${students.length + 1}`,
       tokens: 0,
       tasksCompleted: 0,
       nfts: [],
       grade: 'N/A', // Default grade
-    });
+    };
+    setStudents(prev => [...prev, newStudent]);
   };
 
   const handleCreateTeacher = async (teacher: Omit<Teacher, 'id'>) => {
-    await createTeacher({
+    const newTeacher: Teacher = {
       ...teacher,
+      id: `teacher-${teachers.length + 1}`,
       subjects: [], // Default subjects
-    });
+    };
+    setTeachers(prev => [...prev, newTeacher]);
   };
 
   const handleCreateNFTRequest = (request: Omit<NFTRequest, 'id' | 'requestDate' | 'status' | 'teacherSignature' | 'teacherId' | 'teacherName'>) => {
@@ -114,7 +110,7 @@ export default function App() {
         req.id === requestId
           ? {
               ...req,
-              status: 'blockchain-pending' as const,
+              status: 'approved' as const,
               validatorSignature: {
                 name: 'Validador Técnico',
                 timestamp: new Date().toISOString(),
@@ -123,20 +119,6 @@ export default function App() {
           : req
       )
     );
-
-    setTimeout(() => {
-      setNftRequests(prev =>
-        prev.map(req =>
-          req.id === requestId
-            ? {
-                ...req,
-                status: 'approved' as const,
-                blockchainHash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`,
-              }
-            : req
-        )
-      );
-    }, 3000);
   };
 
   const handleValidatorReject = (requestId: string, reason: string) => {
@@ -153,26 +135,10 @@ export default function App() {
     );
   };
 
-  if (authLoading) {
-    return <div className="flex justify-center items-center h-screen text-lg">Cargando autenticación...</div>;
-  }
 
-  if (!session) {
-    return <LoginSignupForm />;
-  }
-
-  if (studentsLoading || teachersLoading) {
-    return <div className="flex justify-center items-center h-screen text-lg">Cargando datos...</div>;
-  }
-
-  if (studentsError) {
-    return <div className="flex justify-center items-center h-screen text-lg text-red-600">Error al cargar estudiantes: {studentsError}</div>;
-  }
-
-  if (teachersError) {
-    return <div className="flex justify-center items-center h-screen text-lg text-red-600">Error al cargar profesores: {teachersError}</div>;
-  }
-
+  // --- Renderizado Condicional del Dashboard ---
+  // Esta función actúa como un enrutador principal para la UI.
+  // Determina qué dashboard mostrar basándose en el 'userRole' del usuario autenticado.
   const renderDashboard = () => {
     switch (userRole) {
       case 'student':
@@ -223,7 +189,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <Navigation>
-        <AuthStatus />
+
       </Navigation>
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {renderDashboard()}

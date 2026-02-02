@@ -10,17 +10,21 @@ interface SignatureCenterProps {
 }
 
 export function SignatureCenter({ requests, onApprove, onReject }: SignatureCenterProps) {
+  // Estado para gestionar la solicitud que se está revisando actualmente en el modal.
   const [selectedRequest, setSelectedRequest] = useState<NFTRequest | null>(null);
+  // Estado para filtrar las solicitudes por su estado (pendiente, aprobada, etc.).
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
+  // Lógica para filtrar las solicitudes basadas en el estado del filtro seleccionado.
   const filteredRequests = requests.filter(req => {
     if (filter === 'all') return true;
     if (filter === 'pending') return req.status === 'pending-admin';
-    if (filter === 'approved') return req.status === 'approved' || req.status === 'blockchain-pending';
+    if (filter === 'approved') return req.status === 'approved';
     if (filter === 'rejected') return req.status === 'rejected';
     return true;
   });
 
+  // Función auxiliar para renderizar una insignia de estado visualmente distintiva.
   const getStatusBadge = (status: NFTRequest['status']) => {
     switch (status) {
       case 'pending-admin':
@@ -30,13 +34,7 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
             Pendiente
           </span>
         );
-      case 'blockchain-pending':
-        return (
-          <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700 border border-blue-200">
-            <Loader2 className="inline w-3 h-3 mr-1 animate-spin" />
-            Procesando
-          </span>
-        );
+
       case 'approved':
         return (
           <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 border border-green-200">
@@ -119,12 +117,7 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
                         </div>
                       )}
 
-                      {request.blockchainHash && (
-                        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-xs text-green-600 mb-1">Hash de blockchain:</p>
-                          <p className="text-xs font-mono text-green-900 break-all">{request.blockchainHash}</p>
-                        </div>
-                      )}
+
                     </div>
 
                     {request.status === 'pending-admin' && (
@@ -143,7 +136,10 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
         </div>
       </div>
 
-      {/* Modal de Co-Firma */}
+      {/* Renderizado condicional del modal de co-firma. */}
+      {/* El modal solo se muestra si hay una 'selectedRequest' en el estado. */}
+      {/* Se le pasan funciones para manejar la aprobación, el rechazo y el cierre,
+          las cuales actualizan el estado tanto de este componente como del componente padre (App.tsx). */}
       {selectedRequest && (
         <CoSignatureInterface
           request={selectedRequest}

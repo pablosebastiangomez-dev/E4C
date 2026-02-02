@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { type TokenTransaction, type Student } from '../../types';
-import { useSupabaseCrud } from '../../hooks';
+
 import { useEffect, useState } from 'react';
 
 interface MyTokensProps {
@@ -8,48 +8,29 @@ interface MyTokensProps {
 }
 
 export function MyTokens({ studentId }: MyTokensProps) {
-  const {
-    data: allTransactions,
-    loading: transactionsLoading,
-    error: transactionsError,
-  } = useSupabaseCrud<TokenTransaction>('token_transactions');
+  // --- Datos Simulados (Mock Data) ---
+  // En una aplicación real, estos datos vendrían de un contexto global, una API o un backend.
+  const mockStudents: Student[] = [
+    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
+  ];
 
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useSupabaseCrud<Student>('students');
+  const mockTransactions: TokenTransaction[] = [
+    { id: 'trans-1', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 50, type: 'earn', description: 'Tarea completada: Álgebra', date: '2024-01-10T10:00:00Z', teacherName: 'Prof. Rodriguez' },
+    { id: 'trans-2', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 20, type: 'spend', description: 'Canje: Pegatinas', date: '2024-01-15T14:30:00Z' },
+    { id: 'trans-3', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 100, type: 'earn', description: 'Proyecto: Historia Antigua', date: '2024-01-20T09:00:00Z', teacherName: 'Prof. Garcia' },
+  ];
 
-  const [currentBalance, setCurrentBalance] = useState(0);
+  // --- Procesamiento y Cálculo de Datos ---
+  // Busca el estudiante actual y calcula su balance y transacciones.
+  const currentStudent = mockStudents.find((s) => s.id === studentId);
+  const currentBalance = currentStudent?.tokens || 0;
+  const studentTransactions = mockTransactions.filter((transaction) => transaction.studentId === studentId);
 
-  useEffect(() => {
-    if (students && studentId) {
-      const student = students.find(s => s.id === studentId);
-      if (student) {
-        setCurrentBalance(student.tokens);
-      }
-    }
-  }, [students, studentId]);
-
-  if (transactionsLoading || studentsLoading) {
-    return <div className="text-center py-8">Cargando tokens y transacciones...</div>;
-  }
-
-  if (transactionsError || studentsError) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Error al cargar datos de tokens: {transactionsError || studentsError}
-      </div>
-    );
-  }
-
-  const studentTransactions = (allTransactions || []).filter(
-    (transaction) => transaction.studentId === studentId
-  );
-
+  // Calcula el total de tokens ganados.
   const totalEarned = studentTransactions
     .filter((t) => t.type === 'earn')
     .reduce((sum, t) => sum + t.amount, 0);
+  // Calcula el total de tokens gastados. Math.abs para asegurar que el valor sea positivo para la visualización.
   const totalSpent = Math.abs(
     studentTransactions
       .filter((t) => t.type === 'spend')
@@ -90,6 +71,7 @@ export function MyTokens({ studentId }: MyTokensProps) {
               <div key={transaction.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
+                    {/* Renderizado dinámico de iconos y colores según el tipo de transacción (ganar/gastar) */}
                     <div
                       className={`p-3 rounded-full ${
                         transaction.type === 'earn' ? 'bg-green-100' : 'bg-red-100'
