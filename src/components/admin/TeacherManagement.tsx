@@ -79,7 +79,7 @@ export function TeacherManagement() { // Removed props
           {
             body: { student_id: createdTeacher.id }, // Use createdTeacher.id as student_id is generic for wallet creation
             headers: {
-              Authorization: dummyAuthHeader // Use dummy header for MVP
+              // Authorization: dummyAuthHeader // Use dummy header for MVP
             }
           }
         );
