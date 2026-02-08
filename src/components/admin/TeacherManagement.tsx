@@ -3,6 +3,23 @@ import { UserPlus, Search } from 'lucide-react';
 import type { Teacher } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 import { createTeacher } from '../../lib/teacher'; // Import the new createTeacher function
+import Select from 'react-select'; // Import react-select
+
+const subjectOptions = [
+  { value: "Lengua y Literatura", label: "Lengua y Literatura" },
+  { value: "Matemática", label: "Matemática" },
+  { value: "Lengua Adicional", label: "Lengua Adicional" },
+  { value: "Educación Física", label: "Educación Física" },
+  { value: "Biología", label: "Biología" },
+  { value: "Física-Química", label: "Física-Química" },
+  { value: "Historia", label: "Historia" },
+  { value: "Geografía", label: "Geografía" },
+  { value: "Formación Ética y Ciudadana", label: "Formación Ética y Ciudadana" },
+  { value: "Educación Tecnológica", label: "Educación Tecnológica" },
+  { value: "Artes", label: "Artes" },
+  { value: "Tecnologías de la Información", label: "Tecnologías de la Información" },
+  { value: "Tutoría", label: "Tutoría" },
+];
 
 export function TeacherManagement() { // Removed props
   const [teachers, setTeachers] = useState<Teacher[]>([]); // Internal state for teachers
@@ -137,31 +154,18 @@ export function TeacherManagement() { // Removed props
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <select
-              multiple
-              value={newTeacherSubjects}
-              onChange={(e) => {
-                const selectedOptions = Array.from(e.target.selectedOptions).map(
-                  (option) => option.value
-                );
-                setNewTeacherSubjects(selectedOptions);
+            <Select
+              isMulti
+              options={subjectOptions}
+              value={newTeacherSubjects.map(subject => ({ value: subject, label: subject }))}
+              onChange={(selectedOptions) => {
+                const selectedSubjects = selectedOptions ? selectedOptions.map(option => option.value) : [];
+                setNewTeacherSubjects(selectedSubjects);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 h-32" // Added h-32 for multiselect visibility
-            >
-              <option value="Lengua y Literatura">Lengua y Literatura</option>
-              <option value="Matemática">Matemática</option>
-              <option value="Lengua Adicional">Lengua Adicional</option>
-              <option value="Educación Física">Educación Física</option>
-              <option value="Biología">Biología</option>
-              <option value="Física-Química">Física-Química</option>
-              <option value="Historia">Historia</option>
-              <option value="Geografía">Geografía</option>
-              <option value="Formación Ética y Ciudadana">Formación Ética y Ciudadana</option>
-              <option value="Educación Tecnológica">Educación Tecnológica</option>
-              <option value="Artes">Artes</option>
-              <option value="Tecnologías de la Información">Tecnologías de la Información</option>
-              <option value="Tutoría">Tutoría</option>
-            </select>
+              className="w-full" // Basic Tailwind for width
+              classNamePrefix="react-select" // For custom styling if needed
+              placeholder="Selecciona Materias"
+            />
             <select
               value={newTeacherCurso}
               onChange={(e) => setNewTeacherCurso(e.target.value)}
