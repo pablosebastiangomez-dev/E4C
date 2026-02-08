@@ -74,23 +74,25 @@ export function TeacherManagement() { // Removed props
         // --- END MVP Bypass ---
 
         // Now, trigger wallet creation via the new Edge Function
-        const { data: walletResponse, error: walletError } = await supabase.functions.invoke(
-          'trigger-wallet-creation',
+        const createWalletResponse = await fetch(
+          `${supabase.supabaseUrl}/functions/v1/trigger-wallet-creation`,
           {
-            body: { student_id: createdTeacher.id }, // Use createdTeacher.id as student_id is generic for wallet creation
+            method: 'POST',
             headers: {
-              // Authorization: dummyAuthHeader // Use dummy header for MVP
-            }
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ student_id: createdTeacher.id }), // Note: it's student_id in the body, which is used for generic wallet creation
           }
         );
 
-        if (walletError) {
-          console.error('Error triggering wallet creation:', walletError);
-          alert(`Error al crear la billetera Stellar para el profesor: ${walletError.message}`);
-          return;
+        const data = await createWalletResponse.json();
+
+        if (!createWalletResponse.ok) {
+          console.error('Error from trigger-wallet-creation:', data);
+          throw new Error(data.error || 'Failed to trigger wallet creation.');
         }
 
-        const { device_secret_key } = walletResponse;
+        const { device_secret_key } = data;
 
         // Securely store device_secret_key (with a warning for prototype)
         if (device_secret_key) {
