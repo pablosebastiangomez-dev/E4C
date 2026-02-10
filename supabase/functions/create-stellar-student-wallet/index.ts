@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Horizon, Keypair, TransactionBuilder, Operation, BASE_FEE } from 'https://esm.sh/stellar-sdk@12.3.0';
+import { Horizon, Keypair, TransactionBuilder, Operation } from 'https://esm.sh/stellar-sdk@12.3.0';
 
 const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
 
@@ -108,7 +108,7 @@ serve(async (req) => {
     try {
       const account = await horizonServer.loadAccount(masterPublicKey);
       const transaction = new TransactionBuilder(account, {
-        fee: BASE_FEE
+        fee: "100"
       })
         .addOperation(Operation.setOptions({
           signer: {
