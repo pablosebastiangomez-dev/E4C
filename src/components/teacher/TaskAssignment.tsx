@@ -283,7 +283,7 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
 
       {showSuccess && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-lg">
-          ¡Tokens asignados con éxito!
+          ¡Tarea asignada con éxito!
         </div>
       )}
     </div>
