@@ -22,9 +22,9 @@ export function LoginSignupForm() {
 
     try {
       if (isLogin) {
-        await signIn(email, password);
+        await signIn();
       } else {
-        await signUp(email, password);
+        await signUp();
       }
     } catch (err: any) {
       setError(err.message);

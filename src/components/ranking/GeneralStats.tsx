@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { TrendingUp, Award, Users, Zap } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 import type { Student } from '../../types';
 
 interface GeneralStatsProps {

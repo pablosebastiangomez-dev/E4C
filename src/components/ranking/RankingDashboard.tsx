@@ -3,7 +3,7 @@ import { Trophy, Medal, Award, TrendingUp, Users } from 'lucide-react';
 import { LeaderboardTokens } from './LeaderboardTokens';
 import { LeaderboardNFTs } from './LeaderboardNFTs';
 import { GeneralStats } from './GeneralStats';
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 import type { Student } from '../../types';
 
 interface RankingDashboardProps {

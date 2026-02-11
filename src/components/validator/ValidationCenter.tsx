@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ValidationInterface } from './ValidationInterface';
-import { Clock, CheckCircle, XCircle, Loader2, Filter, FileCheck } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import { Clock, CheckCircle, XCircle, Filter, FileCheck } from 'lucide-react';
+import type { NFTRequest } from '../../types';
 
 interface ValidationCenterProps {
   requests: NFTRequest[];

@@ -1,4 +1,5 @@
 import { ArrowLeft, Shield, CheckCircle2, Calendar } from 'lucide-react';
+import { useState } from 'react';
 import { type NFT } from '../../types';
 
 
@@ -53,10 +54,10 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
     },
   ];
 
-  const [nfts, setNfts] = useState<NFT[]>(mockNfts);
+  const [nfts] = useState<NFT[]>(mockNfts);
 
 
-  const nft = (nfts || []).find(n => n.id === nftId);
+  const nft = (nfts || []).find((n: NFT) => n.id === nftId);
 
   // --- Renderizado Condicional: NFT No Encontrado ---
   // Si no se encuentra el NFT con el ID proporcionado, se muestra un mensaje de error

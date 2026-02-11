@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, CheckCircle, XCircle, Shield, FileText, AlertTriangle, Zap } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import { X, CheckCircle, XCircle, Shield, FileText, AlertTriangle } from 'lucide-react';
+import type { NFTRequest } from '../../types';
 
 interface ValidationInterfaceProps {
   request: NFTRequest;

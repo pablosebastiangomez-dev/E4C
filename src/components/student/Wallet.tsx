@@ -12,7 +12,7 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
   // --- Datos Simulados (Mock Data) ---
   // En una aplicación real, estos datos vendrían de una API o un contexto global de la aplicación.
   const mockStudents: Student[] = [
-    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: ['nft-1', 'nft-2'], grade: '10th' },
+    { id: 'demo-student-id', name: 'Jorge Luis Borges', email: 'jorge.borges@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: ['nft-1', 'nft-2'], grade: '10th' },
   ];
 
   const mockNfts: NFT[] = [
@@ -24,8 +24,8 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
       issuedDate: '2023-05-15T10:00:00Z',
       category: 'excellence',
       signatures: {
-        teacher: 'Prof. Alex Johnson',
-        admin: 'Dr. Emily White',
+        teacher: 'Prof. Alejo Borges',
+        admin: 'Dra. Emilia Blanco',
         timestamp: '2023-05-20T11:30:00Z',
       },
     },
@@ -37,8 +37,8 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
       issuedDate: '2023-03-01T09:00:00Z',
       category: 'achievement',
       signatures: {
-        teacher: 'Ms. Sarah Davis',
-        admin: 'Dr. Emily White',
+        teacher: 'Sra. Sara David',
+        admin: 'Dra. Emilia Blanco',
         timestamp: '2023-03-05T14:00:00Z',
       },
     },

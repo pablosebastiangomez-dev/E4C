@@ -1,23 +1,21 @@
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { type TokenTransaction, type Student } from '../../types';
 
-import { useEffect, useState } from 'react';
-
 interface MyTokensProps {
-  studentId: string; // The ID of the current student
+  studentId: string | undefined; // The ID of the current student
 }
 
 export function MyTokens({ studentId }: MyTokensProps) {
   // --- Datos Simulados (Mock Data) ---
   // En una aplicación real, estos datos vendrían de un contexto global, una API o un backend.
   const mockStudents: Student[] = [
-    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
+    { id: 'demo-student-id', name: 'Jorge Luis Borges', email: 'jorge.borges@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
   ];
 
   const mockTransactions: TokenTransaction[] = [
-    { id: 'trans-1', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 50, type: 'earn', description: 'Tarea completada: Álgebra', date: '2024-01-10T10:00:00Z', teacherName: 'Prof. Rodriguez' },
-    { id: 'trans-2', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 20, type: 'spend', description: 'Canje: Pegatinas', date: '2024-01-15T14:30:00Z' },
-    { id: 'trans-3', studentId: 'demo-student-id', studentName: 'Demo Student', amount: 100, type: 'earn', description: 'Proyecto: Historia Antigua', date: '2024-01-20T09:00:00Z', teacherName: 'Prof. Garcia' },
+    { id: 'trans-1', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 50, type: 'earn', description: 'Tarea completada: Álgebra', date: '2024-01-10T10:00:00Z', teacherName: 'Prof. Sábato' },
+    { id: 'trans-2', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 20, type: 'spend', description: 'Canje: Pegatinas', date: '2024-01-15T14:30:00Z' },
+    { id: 'trans-3', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 100, type: 'earn', description: 'Proyecto: Historia Antigua', date: '2024-01-20T09:00:00Z', teacherName: 'Prof. Cortázar' },
   ];
 
   // --- Procesamiento y Cálculo de Datos ---

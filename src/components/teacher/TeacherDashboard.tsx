@@ -1,38 +1,71 @@
-import { useState } from 'react';
-import { Coins, Award, History } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Coins, Award, History, CheckCircle } from 'lucide-react';
 import { TaskAssignment } from './TaskAssignment';
 import { NFTRequestForm } from './NFTRequestForm';
 import { SubmissionHistory } from './SubmissionHistory';
-import type { NFTRequest } from '../../App';
+import { TaskReview } from './TaskReview';
+import { supabase } from '../../lib/supabaseClient';
+import type { NFTRequest, Teacher } from '../../types';
 
 interface TeacherDashboardProps {
+  teacherId?: string; // Make teacherId optional
   nftRequests: NFTRequest[];
   onCreateNFTRequest: (request: Omit<NFTRequest, 'id' | 'requestDate' | 'status' | 'teacherSignature' | 'teacherId' | 'teacherName'>) => void;
 }
 
-type TabView = 'tasks' | 'nft-request' | 'history';
+type TabView = 'assign-tasks' | 'review-tasks' | 'nft-request' | 'history';
 
-export function TeacherDashboard({ nftRequests, onCreateNFTRequest }: TeacherDashboardProps) {
-  // Estado para controlar la pestaña activa dentro del dashboard del docente.
-  const [activeTab, setActiveTab] = useState<TabView>('tasks');
+export function TeacherDashboard({ teacherId, nftRequests, onCreateNFTRequest }: TeacherDashboardProps) {
+  const [activeTab, setActiveTab] = useState<TabView>('assign-tasks');
+  const [teacherData, setTeacherData] = useState<Teacher | null>(null);
 
-  // Configuración de las pestañas de navegación para el dashboard.
-  // Cada objeto define una pestaña con su ID, etiqueta, icono y color para el estilo.
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      if (!teacherId) { // Handle case where teacherId is not provided
+        setTeacherData(null);
+        return;
+      }
+
+      const { data: teacher, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('id', teacherId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching teacher data:', error);
+        setTeacherData(null);
+      } else {
+        setTeacherData(teacher as Teacher);
+      }
+    };
+
+    fetchTeacherData();
+  }, [teacherId]);
+
+  if (!teacherData) {
+    return (
+      <div className="flex justify-center items-center h-full text-lg">
+        {!teacherId ? 'Selecciona un docente para ver su dashboard.' : 'Cargando datos del docente...'}
+      </div>
+    );
+  }
+
+  // Filtra las solicitudes de NFT para mostrar solo las que pertenecen al docente actual.
+  const myRequests = nftRequests.filter(req => teacherId && req.teacherId === teacherId);
+
   const tabs = [
-    { id: 'tasks' as TabView, label: 'Asignar Tokens', icon: Coins, color: 'indigo' },
+    { id: 'assign-tasks' as TabView, label: 'Asignar Tareas', icon: Coins, color: 'indigo' },
+    { id: 'review-tasks' as TabView, label: 'Corregir Tareas', icon: CheckCircle, color: 'emerald' }, // New tab for task review
     { id: 'nft-request' as TabView, label: 'Solicitar NFT de Mérito', icon: Award, color: 'purple' },
     { id: 'history' as TabView, label: 'Historial de Envíos', icon: History, color: 'blue' },
   ];
-
-  // Filtra las solicitudes de NFT para mostrar solo las que pertenecen al docente actual.
-  // 't1' es un ID de docente simulado para fines de demostración.
-  const myRequests = nftRequests.filter(req => req.teacherId === 't1'); // Simular docente actual
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
-        <h2>Panel de Docente</h2>
+        <h2>Panel de Docente: {teacherData.name}</h2>
         <p className="mt-2 opacity-90">
           Gestiona tokens e incentiva el logro estudiantil
         </p>
@@ -64,8 +97,9 @@ export function TeacherDashboard({ nftRequests, onCreateNFTRequest }: TeacherDas
       {/* Muestra el componente correspondiente (Asignación de Tareas, Formulario de Solicitud de NFT o Historial de Envíos)
           basado en la pestaña 'activeTab' seleccionada. */}
       <div>
-        {activeTab === 'tasks' && <TaskAssignment />}
-        {activeTab === 'nft-request' && <NFTRequestForm onSubmit={onCreateNFTRequest} />}
+        {activeTab === 'assign-tasks' && <TaskAssignment teacherId={teacherId} />}
+        {activeTab === 'review-tasks' && teacherId && <TaskReview teacherId={teacherId} />} {/* Render TaskReview */}
+        {activeTab === 'nft-request' && <NFTRequestForm onSubmit={onCreateNFTRequest} teacherId={teacherId} />}
         {activeTab === 'history' && <SubmissionHistory requests={myRequests} />}
       </div>
     </div>

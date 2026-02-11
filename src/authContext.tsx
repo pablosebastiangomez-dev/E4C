@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserRole } from './App';
+import { UserRole } from './types';
 
 // Mock types for Session and User
 interface User {
@@ -35,8 +35,8 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string) => Promise<any>;
+  signIn: () => Promise<any>;
+  signUp: () => Promise<any>;
   signOut: () => Promise<any>;
   switchUserRole: (role: UserRole) => void;
 }
@@ -86,12 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async () => {
     if (DEMO_MODE) return Promise.resolve({ user: session?.user, session });
     return Promise.resolve({ user: null, session: null });
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async () => {
     if (DEMO_MODE) return Promise.resolve({ user: session?.user, session });
     return Promise.resolve({ user: null, session: null });
   };

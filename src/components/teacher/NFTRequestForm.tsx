@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Upload, Award, CheckCircle, FileText } from 'lucide-react';
 import { type Student, type AchievementTemplate } from '../../types';
 
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 
 interface NFTRequestFormProps {
   onSubmit: (request: Omit<NFTRequest, 'id' | 'requestDate' | 'status' | 'teacherSignature' | 'teacherId' | 'teacherName'>) => void;
+  teacherId: string | undefined;
 }
 
 export function NFTRequestForm({ onSubmit }: NFTRequestFormProps) {
@@ -26,9 +27,9 @@ export function NFTRequestForm({ onSubmit }: NFTRequestFormProps) {
   // --- Datos Simulados (Mock Data) ---
   // En un entorno real, estos datos vendrían de un backend o de un contexto global.
   const mockStudents: Student[] = [
-    { id: 'student-1', name: 'Alice Smith', email: 'alice.smith@example.com', tokens: 150, tasksCompleted: 10, nfts: [], grade: '10th' },
-    { id: 'student-2', name: 'Bob Johnson', email: 'bob.johnson@example.com', tokens: 200, tasksCompleted: 12, nfts: [], grade: '11th' },
-    { id: 'student-3', name: 'Charlie Brown', email: 'charlie.brown@example.com', tokens: 75, tasksCompleted: 5, nfts: [], grade: '9th' },
+    { id: 'student-1', name: 'Lionel Messi', email: 'lionel.messi@example.com', tokens: 150, tasksCompleted: 10, nfts: [], grade: '10th', enrollmentDate: '2022-09-01' },
+    { id: 'student-2', name: 'Juana Molina', email: 'juana.molina@example.com', tokens: 200, tasksCompleted: 12, nfts: [], grade: '11th', enrollmentDate: '2021-09-01' },
+    { id: 'student-3', name: 'René Favaloro', email: 'rene.favaloro@example.com', tokens: 75, tasksCompleted: 5, nfts: [], grade: '9th', enrollmentDate: '2023-09-01' },
   ];
 
   const mockAchievementTemplates: AchievementTemplate[] = [

@@ -9,23 +9,41 @@ export interface Student {
   tasksCompleted: number;
   nfts: string[]; // Array of NFT IDs
   grade: string; // Added from mockData
+  stellar_public_key?: string;
+  curso?: string;
+  division?: string;
+  escuela?: string;
 }
 
 export interface Teacher {
   id: string;
   name: string;
   email: string;
-  department: string;
   subjects: string[]; // Added from mockData
+  curso?: string;
+  division?: string;
+  escuela?: string;
+  stellar_public_key?: string;
 }
 
 export interface Task {
   id: string;
   title: string;
   subject: string;
+  description: string; // Added description
   dueDate: string;
   points: number;
   status: 'pending' | 'completed';
+}
+
+export interface StudentTask {
+  id: string;
+  student_id: string;
+  task_id: string;
+  status: 'assigned' | 'completed' | 'teacher_approved' | 'rejected_by_teacher' | 'validator_approved' | 'rejected_by_validator';
+  assigned_date: string;
+  completed_date?: string;
+  grade?: number;
 }
 
 export interface NFT {
@@ -76,3 +94,31 @@ export interface TokenTransaction {
   teacherName?: string;
 }
 
+export type UserRole = 'student' | 'teacher' | 'admin' | 'validator' | 'ranking' | 'unauthenticated' | 'unapproved';
+
+export interface NFTRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  achievementName: string;
+  description: string;
+  evidence: string;
+  requestDate: string;
+  teacherName: string;
+  teacherId: string;
+  status: 'pending-admin' | 'pending-validator' | 'approved' | 'rejected' | 'blockchain-pending' | 'blockchain-confirmed';
+  teacherSignature?: {
+    name: string;
+    timestamp: string;
+  };
+  adminSignature?: {
+    name: string;
+    timestamp: string;
+  };
+  validatorSignature?: {
+    name: string;
+    timestamp: string;
+  };
+  rejectionReason?: string;
+  blockchainHash?: string;
+}

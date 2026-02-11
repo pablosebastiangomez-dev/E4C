@@ -12,8 +12,8 @@ interface MockUser {
 // En una aplicación real, estos datos vendrían del estado global o de una API.
 const UserApproval: React.FC = () => {
   const [users, setUsers] = useState<MockUser[]>([
-    { id: 'mock-user-1', email: 'pending.student@example.com', user_metadata: { role: 'unapproved' } },
-    { id: 'mock-user-2', email: 'pending.teacher@example.com', user_metadata: { role: 'unapproved' } },
+    { id: 'mock-user-1', email: 'futuro.estudiante@example.com', user_metadata: { role: 'unapproved' } },
+    { id: 'mock-user-2', email: 'futuro.docente@example.com', user_metadata: { role: 'unapproved' } },
   ]);
 
   // Función para aprobar un usuario. Cambia el rol del usuario a 'student'.

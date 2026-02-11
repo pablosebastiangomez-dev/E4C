@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Horizon, Keypair, TransactionBuilder, Operation } from 'https://esm.sh/stellar-sdk@12.3.0';
+import * as StellarSdk from 'https://esm.sh/stellar-sdk@12.3.0';
 
-const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
+const horizonServer = new StellarSdk.Horizon.Server("https://horizon-testnet.stellar.org");
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,68 +87,19 @@ serve(async (req) => {
 
 
     // 1. Create a new Stellar keypair
-    const masterKeypair = Keypair.random();
-    const masterPublicKey = masterKeypair.publicKey();
-    const masterSecret = masterKeypair.secret();
-
-    const deviceKeypair = Keypair.random();
-    const devicePublicKey = deviceKeypair.publicKey();
-    const deviceSecret = deviceKeypair.secret();
-
-    const recoverySigner1Keypair = Keypair.random();
-    const recoverySigner1PublicKey = recoverySigner1Keypair.publicKey();
-
-    const recoverySigner2Keypair = Keypair.random();
-    const recoverySigner2PublicKey = recoverySigner2Keypair.publicKey();
+    const keypair = StellarSdk.Keypair.random();
+    const publicKey = keypair.publicKey();
+    const secretKey = keypair.secret(); // Esta se entrega al alumno y se OLVIDA
 
     // 2. Fund the new account
     await fundWithFriendbot(masterPublicKey);
 
-    // 3. Configure multi-signature
-    try {
-      const account = await horizonServer.loadAccount(masterPublicKey);
-      const transaction = new TransactionBuilder(account, {
-        fee: "100"
-      })
-        .addOperation(Operation.setOptions({
-          signer: {
-            ed25519PublicKey: devicePublicKey,
-            weight: 1
-          }
-        }))
-        .addOperation(Operation.setOptions({
-          signer: {
-            ed25519PublicKey: recoverySigner1PublicKey,
-            weight: 1
-          }
-        }))
-        .addOperation(Operation.setOptions({
-          signer: {
-            ed25519PublicKey: recoverySigner2PublicKey,
-            weight: 1
-          }
-        }))
-        .addOperation(Operation.setOptions({
-          masterWeight: 0, // "Secure erase" the master key
-          lowThreshold: 1, // Device key alone can perform low-security operations
-          mediumThreshold: 2, // Device + 1 Recovery, or 2 Recovery
-          highThreshold: 2 // Device + 1 Recovery, or 2 Recovery
-        }))
-        .setTimeout(30)
-        .build();
 
-      transaction.sign(masterKeypair); // Sign with the master key
-      await horizonServer.submitTransaction(transaction);
-      console.log("Multi-signature configured successfully.");
-    } catch (e) {
-      console.error("ERROR! Failed to configure multi-signature:", e);
-      throw new Error("Failed to configure multi-signature.");
-    }
 
     // 4. Update the existing student row with the stellar_public_key
     const { error: updateError } = await supabaseClient
       .from('students')
-      .update({ stellar_public_key: masterPublicKey })
+      .update({ stellar_public_key: publicKey })
       .eq('id', studentId);
 
     if (updateError) {
@@ -164,12 +115,8 @@ serve(async (req) => {
       .from('stellar_wallets')
       .insert([{
         student_id: studentId,
-        public_key: masterPublicKey,
-        signers_info: {
-          device_public_key: devicePublicKey,
-          recovery_signer_1_public_key: recoverySigner1PublicKey,
-          recovery_signer_2_public_key: recoverySigner2PublicKey,
-        }
+        public_key: publicKey,
+        // Eliminamos signers_info y claves de recuperación
       }]);
 
     if (walletError) {
@@ -183,10 +130,9 @@ serve(async (req) => {
 
     // Return the updated student data (or a success message)
     return new Response(JSON.stringify({
-      message: "Stellar wallet created and linked successfully for student",
-      student_id: studentId,
-      stellar_public_key: masterPublicKey,
-      device_secret_key: deviceSecret, // Return device secret key for local storage
+      message: "Billetera creada. GUARDA TU CLAVE PRIVADA.",
+      stellar_public_key: publicKey,
+      stellar_secret_key: secretKey, // IMPORTANTE: El frontend debe mostrar esto al usuario
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

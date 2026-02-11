@@ -1,51 +1,103 @@
 import { useState, useEffect } from 'react';
-import { Coins, Award, ShoppingBag, Trophy } from 'lucide-react';
+import { Coins, Award, ShoppingBag, Trophy, ClipboardList } from 'lucide-react'; // Import ClipboardList
 import { MyTokens } from './MyTokens';
 import { MyNFTs } from './MyNFTs';
 import { Marketplace } from './Marketplace';
-import type { NFTRequest } from '../../App';
-
-import { type Student } from '../../types';
+import { MyTasks } from './MyTasks';
+import { supabase } from '../../lib/supabaseClient';
+import type { Student, NFTRequest } from '../../types';
+import * as StellarSdk from '@stellar/stellar-sdk'; // Import Stellar SDK as a namespace
 
 interface StudentDashboardProps {
-  studentId: string;
-  nftRequests: NFTRequest[];
+  studentId?: string; // Make studentId optional
+  nftRequests?: NFTRequest[];
 }
 
-type StudentView = 'tokens' | 'nfts' | 'marketplace';
+type StudentView = 'tokens' | 'nfts' | 'marketplace' | 'my-tasks'; // Add 'my-tasks'
 
-export function StudentDashboard({ studentId, nftRequests }: StudentDashboardProps) {
-  // Estado para controlar la vista activa dentro del dashboard del estudiante.
+export function StudentDashboard({ studentId, nftRequests: propNftRequests }: StudentDashboardProps) {
   const [activeView, setActiveView] = useState<StudentView>('tokens');
+  const [studentData, setStudentData] = useState<Student | null>(null);
+  const [nftRequests, setNftRequests] = useState<NFTRequest[]>(propNftRequests || []);
+  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
 
-  // --- Datos de Estudiante Simulados (Mock Data) ---
-  // Este objeto 'mockStudent' se utiliza para simular el perfil del estudiante.
-  // En una aplicación real, el perfil completo del estudiante provendría de una API o contexto global.
-  const mockStudent: Student = {
-    id: studentId,
-    name: 'Demo Student',
-    email: 'demo.student@example.com',
-    enrollmentDate: '2023-09-01',
-    tokens: 250,
-    tasksCompleted: 15,
-    nfts: [], // This will be filtered from nftRequests
-    grade: '10th',
-  };
-  const student = mockStudent; // Se usa 'mockStudent' como el estudiante actual.
+  useEffect(() => {
+    const fetchStudentAndNFTRequests = async () => {
+      if (!studentId) { // Handle case where studentId is not provided
+        setStudentData(null);
+        setXlmBalance(null);
+        setNftRequests([]);
+        return;
+      }
 
-  // --- Derivación de Datos: Mis NFTs ---
-  // Filtra las solicitudes de NFT para obtener solo las que pertenecen al estudiante actual
-  // y que han sido aprobadas.
+      // Fetch student data
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError) {
+        console.error('Error fetching student:', studentError);
+        setStudentData(null);
+        setXlmBalance(null);
+      } else {
+        setStudentData(student as Student);
+
+        // Fetch Stellar balance if public key exists
+        if (student && student.stellar_public_key) {
+          try {
+            const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org'); // Use StellarSdk.Horizon.Server
+            const account = await server.accounts().accountId(student.stellar_public_key).call();
+            const nativeBalance = account.balances.find(b => b.asset_type === 'native');
+            setXlmBalance(nativeBalance ? nativeBalance.balance : '0');
+          } catch (stellarErr) {
+            console.error('Error fetching Stellar balance:', stellarErr);
+            setXlmBalance('Error');
+          }
+        } else {
+          setXlmBalance(null);
+        }
+      }
+
+      // Fetch NFT requests if not provided as prop
+      if (!propNftRequests) {
+        const { data: requests, error: requestsError } = await supabase
+          .from('nft_requests')
+          .select('*')
+          .eq('studentId', studentId);
+
+        if (requestsError) {
+          console.error('Error fetching NFT requests:', requestsError);
+          setNftRequests([]);
+        } else {
+          setNftRequests(requests as NFTRequest[]);
+        }
+      }
+    };
+
+    fetchStudentAndNFTRequests();
+  }, [studentId, propNftRequests]);
+
   const myNFTs = nftRequests.filter(
-    req => req.studentId === studentId && req.status === 'approved'
+    req => studentId && req.studentId === studentId && req.status === 'approved'
   );
 
-  // Configuración de las pestañas de navegación para el dashboard del estudiante.
-  // Cada objeto define una pestaña con su ID, etiqueta, icono y color para el estilo.
+  if (!studentData) {
+    return (
+      <div className="flex justify-center items-center h-full text-lg">
+        {!studentId ? 'Selecciona un estudiante para ver su dashboard.' : 'Cargando datos del estudiante...'}
+      </div>
+    );
+  }
+
+  const student = studentData; // Use fetched data
+
   const tabs = [
     { id: 'tokens' as StudentView, label: 'Mis Tokens', icon: Coins, color: 'indigo' },
     { id: 'nfts' as StudentView, label: 'Mis Logros NFT', icon: Trophy, color: 'purple' },
     { id: 'marketplace' as StudentView, label: 'Marketplace', icon: ShoppingBag, color: 'pink' },
+    { id: 'my-tasks' as StudentView, label: 'Mis Tareas', icon: ClipboardList, color: 'emerald' }, // New tab
   ];
 
   return (
@@ -63,8 +115,8 @@ export function StudentDashboard({ studentId, nftRequests }: StudentDashboardPro
         <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 mb-1">Mis Tokens</p>
-              <p className="text-indigo-600">{student?.tokens || 0}</p>
+              <p className="text-gray-600 mb-1">Tokens XLM</p>
+              <p className="text-indigo-600">{xlmBalance !== null ? `${xlmBalance} XLM` : 'Cargando...'}</p>
             </div>
             <div className="bg-indigo-100 p-3 rounded-full">
               <Coins className="w-6 h-6 text-indigo-600" />
@@ -120,12 +172,13 @@ export function StudentDashboard({ studentId, nftRequests }: StudentDashboardPro
       </div>
 
       {/* --- Contenido Dinámico del Dashboard --- */}
-      {/* Muestra el componente correspondiente (Mis Tokens, Mis NFTs o Marketplace)
+      {/* Muestra el componente correspondiente (Mis Tokens, Mis NFTs, Marketplace o Mis Tareas)
           basado en la pestaña 'activeView' seleccionada. */}
       <div>
         {activeView === 'tokens' && <MyTokens studentId={studentId} />}
         {activeView === 'nfts' && <MyNFTs nfts={myNFTs} />}
         {activeView === 'marketplace' && <Marketplace studentId={studentId} />}
+        {activeView === 'my-tasks' && studentId && <MyTasks studentId={studentId} />}
       </div>
     </div>
   );

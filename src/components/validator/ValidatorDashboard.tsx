@@ -1,6 +1,6 @@
 import { Shield, CheckCircle, AlertCircle, Clock, Award } from 'lucide-react';
 import { ValidationCenter } from './ValidationCenter';
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 
 interface ValidatorDashboardProps {
   nftRequests: NFTRequest[];

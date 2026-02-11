@@ -8,11 +8,11 @@ import type { Student, Teacher } from '../../types';
 interface AdminDashboardProps {
   students: Student[];
   teachers: Teacher[];
-  onCreateStudent: (student: Omit<Student, 'id' | 'tokens' | 'tasksCompleted' | 'nfts'>) => void;
-  onCreateTeacher: (teacher: Omit<Teacher, 'id'>) => void;
+  onCreateStudent: (student: Omit<Student, 'id' | 'tokens' | 'tasksCompleted' | 'nfts' | 'stellar_public_key' | 'enrollmentDate' | 'grade'> & { stellar_public_key: string }) => Promise<void>;
+  onCreateTeacher: (teacher: Omit<Teacher, 'id' | 'stellar_public_key'>) => Promise<void>;
 }
 
-export function AdminDashboard({ students, teachers, onCreateStudent, onCreateTeacher }: AdminDashboardProps) {
+export function AdminDashboard({ teachers, onCreateTeacher }: AdminDashboardProps) {
   // Estado para controlar la vista activa (pestaña seleccionada).
   const [activeView, setActiveView] = useState<'students' | 'teachers' | 'approve'>('students');
 
@@ -74,7 +74,7 @@ export function AdminDashboard({ students, teachers, onCreateStudent, onCreateTe
       {/* Aquí se renderiza uno de los tres componentes de gestión basados en el estado 'activeView'. */}
       <div>
         {activeView === 'students' && (
-          <StudentManagement students={students} onCreateStudent={onCreateStudent} />
+          <StudentManagement />
         )}
         {activeView === 'teachers' && (
           <TeacherManagement teachers={teachers} onCreateTeacher={onCreateTeacher} />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CoSignatureInterface } from './CoSignatureInterface';
-import { Clock, CheckCircle, XCircle, Loader2, Filter } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import { Clock, CheckCircle, XCircle, Filter } from 'lucide-react';
+import type { NFTRequest } from '../../types';
 
 interface SignatureCenterProps {
   requests: NFTRequest[];
@@ -142,7 +142,6 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
           las cuales actualizan el estado tanto de este componente como del componente padre (App.tsx). */}
       {selectedRequest && (
         <CoSignatureInterface
-          request={selectedRequest}
           onApprove={() => {
             onApprove(selectedRequest.id);
             setSelectedRequest(null);
@@ -151,7 +150,6 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
             onReject(selectedRequest.id, reason);
             setSelectedRequest(null);
           }}
-          onClose={() => setSelectedRequest(null)}
         />
       )}
     </>

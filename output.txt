@@ -1,0 +1,29 @@
+¡Excelente! Este cambio de enfoque hacia SEP-30 es una decisión muy acertada que fortalecerá enormemente la seguridad y la experiencia de usuario de Edu-Chain. La arquitectura de multifirma es el camino correcto para las billeteras de consumo.
+
+Vamos a implementar esto. Será un cambio significativo, pero los beneficios valen la pena.
+
+**Fase 1: Cambios en el Esquema de la Base de Datos**
+
+Necesitamos ajustar las tablas `students` y `stellar_wallets` para reflejar la nueva arquitectura de multifirma.
+
+**1. Modificar la tabla `students`:**
+Vamos a añadir un campo para almacenar la clave pública del dispositivo (`device_public_key`) asociada al estudiante.
+
+Por favor, ve al **SQL Editor** en tu panel de Supabase y ejecuta la siguiente consulta SQL:
+
+```sql
+ALTER TABLE students
+ADD COLUMN device_public_key TEXT;
+```
+
+**2. Modificar la tabla `stellar_wallets`:**
+Esta tabla ahora almacenará la clave secreta de nuestro **Recovery Signer 1** (el que vive en tu backend de Supabase).
+
+Por favor, ve al **SQL Editor** en tu panel de Supabase y ejecuta la siguiente consulta SQL para renombrar la columna y hacerla más explícita:
+
+```sql
+ALTER TABLE stellar_wallets
+RENAME COLUMN secret_key TO recovery_signer_1_secret_key;
+```
+
+Una vez que hayas ejecutado estas dos consultas en Supabase, avísame para que podamos continuar con la refactorización de la Edge Function.

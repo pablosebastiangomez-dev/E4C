@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { X, CheckCircle, XCircle, Shield, User, FileText, Calendar, Sparkles } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import { CheckCircle, XCircle, Shield } from 'lucide-react';
 
 interface CoSignatureInterfaceProps {
-  request: NFTRequest;
   onApprove: () => void;
   onReject: (reason: string) => void;
-  onClose: () => void;
 }
 
 // Componente modal para la interfaz de co-firma de un administrador.
 // Permite a un administrador dar su aprobación final (co-firmar) o rechazar una solicitud de NFT.
-export function CoSignatureInterface({ request, onApprove, onReject, onClose }: CoSignatureInterfaceProps) {
+export function CoSignatureInterface({ onApprove, onReject }: CoSignatureInterfaceProps) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isApproving, setIsApproving] = useState(false);
@@ -45,6 +42,7 @@ export function CoSignatureInterface({ request, onApprove, onReject, onClose }: 
                 <h3>Interfaz de Co-Firma Multi-sig</h3>
                 <p className="text-sm opacity-90 mt-1">
                   Valida y certifica la emisión del NFT
+                </p>
               </div>
             </div>
           </div>

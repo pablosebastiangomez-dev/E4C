@@ -1,5 +1,5 @@
 import { Award, Trophy, Medal } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 
 interface LeaderboardNFTsProps {
   nftRequests: NFTRequest[];

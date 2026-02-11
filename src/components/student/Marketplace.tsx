@@ -4,7 +4,7 @@ import { type Reward, type Student } from '../../types';
 
 
 interface MarketplaceProps {
-  studentId: string; // Assuming studentId is passed as a prop
+  studentId: string | undefined; // Assuming studentId is passed as a prop
 }
 
 export function Marketplace({ studentId }: MarketplaceProps) {
@@ -14,7 +14,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
   const [showConfirmation, setShowConfirmation] = useState(false); // Controla la visibilidad de la notificación de éxito.
   // Datos simulados para estudiantes y recompensas. En una app real, vendrían de un contexto o API.
   const mockStudents: Student[] = [
-    { id: 'demo-student-id', name: 'Demo Student', email: 'demo.student@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
+    { id: 'demo-student-id', name: 'Jorge Luis Borges', email: 'jorge.borges@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
   ];
 
   const mockRewards: Reward[] = [

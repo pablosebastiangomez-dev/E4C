@@ -1,5 +1,5 @@
-import { Clock, CheckCircle, XCircle, Loader2, ShieldCheck } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import type { NFTRequest } from '../../types';
 
 interface SubmissionHistoryProps {
   requests: NFTRequest[];
@@ -27,6 +27,7 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
           bgColor: 'bg-orange-50',
           textColor: 'text-orange-700',
           borderColor: 'border-orange-200',
+          animate: true,
         };
       case 'approved':
         return {
@@ -36,6 +37,7 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
           bgColor: 'bg-green-50',
           textColor: 'text-green-700',
           borderColor: 'border-green-200',
+          animate: false,
         };
       case 'rejected':
         return {
@@ -45,6 +47,7 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
           bgColor: 'bg-red-50',
           textColor: 'text-red-700',
           borderColor: 'border-red-200',
+          animate: false,
         };
       default:
         return {
@@ -54,6 +57,7 @@ export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
           bgColor: 'bg-gray-50',
           textColor: 'text-gray-700',
           borderColor: 'border-gray-200',
+          animate: false,
         };
     }
   };

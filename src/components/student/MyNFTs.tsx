@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Award, Calendar, Shield, X } from 'lucide-react';
-import type { NFTRequest } from '../../App';
+import type { NFTRequest } from '../../types';
 
 interface MyNFTsProps {
   nfts: NFTRequest[];
