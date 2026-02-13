@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Coins, Award, History, CheckCircle } from 'lucide-react';
 import { TaskAssignment } from './TaskAssignment';
 import { NFTRequestForm } from './NFTRequestForm';
 import { SubmissionHistory } from './SubmissionHistory';
 import { TaskReview } from './TaskReview';
 import { supabase } from '../../lib/supabaseClient';
-import type { NFTRequest, Teacher } from '../../types';
+import type { NFTRequest, Teacher, Task } from '../../types';
 
 interface TeacherDashboardProps {
   teacherId?: string; // Make teacherId optional
@@ -18,11 +18,51 @@ type TabView = 'assign-tasks' | 'review-tasks' | 'nft-request' | 'history';
 export function TeacherDashboard({ teacherId, nftRequests, onCreateNFTRequest }: TeacherDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabView>('assign-tasks');
   const [teacherData, setTeacherData] = useState<Teacher | null>(null);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0); // New state for the counter
+
+  const fetchPendingReviewCount = useCallback(async () => {
+    if (!teacherId) {
+      setPendingReviewCount(0);
+      return;
+    }
+
+    try {
+      // 1. Get task IDs created by this teacher
+      const { data: teacherTasks, error: teacherTasksError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('teacherid', teacherId);
+
+      if (teacherTasksError) throw teacherTasksError;
+
+      const teacherTaskIds = teacherTasks.map(t => t.id);
+
+      if (teacherTaskIds.length === 0) {
+        setPendingReviewCount(0);
+        return;
+      }
+
+      // 2. Count student_tasks with status 'completed' and belonging to these tasks
+      const { count, error: studentTasksCountError } = await supabase
+        .from('student_tasks')
+        .select('id', { count: 'exact' })
+        .eq('status', 'completed')
+        .in('task_id', teacherTaskIds);
+
+      if (studentTasksCountError) throw studentTasksCountError;
+
+      setPendingReviewCount(count || 0);
+    } catch (err) {
+      console.error('Error fetching pending review count:', err);
+      setPendingReviewCount(0);
+    }
+  }, [teacherId]);
 
   useEffect(() => {
     const fetchTeacherData = async () => {
       if (!teacherId) { // Handle case where teacherId is not provided
         setTeacherData(null);
+        setPendingReviewCount(0); // Reset count if no teacher
         return;
       }
 
@@ -35,13 +75,15 @@ export function TeacherDashboard({ teacherId, nftRequests, onCreateNFTRequest }:
       if (error) {
         console.error('Error fetching teacher data:', error);
         setTeacherData(null);
+        setPendingReviewCount(0); // Reset count on error
       } else {
         setTeacherData(teacher as Teacher);
+        fetchPendingReviewCount(); // Fetch count after teacher data is loaded
       }
     };
 
     fetchTeacherData();
-  }, [teacherId]);
+  }, [teacherId, fetchPendingReviewCount]); // Add fetchPendingReviewCount to dependencies
 
   if (!teacherData) {
     return (
@@ -88,6 +130,11 @@ export function TeacherDashboard({ teacherId, nftRequests, onCreateNFTRequest }:
             >
               <Icon className="w-5 h-5" />
               <span>{tab.label}</span>
+              {tab.id === 'review-tasks' && pendingReviewCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                  {pendingReviewCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -98,7 +145,7 @@ export function TeacherDashboard({ teacherId, nftRequests, onCreateNFTRequest }:
           basado en la pestaña 'activeTab' seleccionada. */}
       <div>
         {activeTab === 'assign-tasks' && <TaskAssignment teacherId={teacherId} />}
-        {activeTab === 'review-tasks' && teacherId && <TaskReview teacherId={teacherId} />} {/* Render TaskReview */}
+        {activeTab === 'review-tasks' && teacherId && <TaskReview teacherId={teacherId} onTasksReviewed={fetchPendingReviewCount} />} {/* Pass callback */}
         {activeTab === 'nft-request' && <NFTRequestForm onSubmit={onCreateNFTRequest} teacherId={teacherId} />}
         {activeTab === 'history' && <SubmissionHistory requests={myRequests} />}
       </div>

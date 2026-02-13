@@ -26,6 +26,22 @@ export interface Teacher {
   stellar_public_key?: string;
 }
 
+export interface Admin {
+  id: string;
+  name: string;
+  email: string;
+  stellar_public_key?: string;
+  created_at: string;
+}
+
+export interface Validator {
+  id: string;
+  name: string;
+  email: string;
+  stellar_public_key?: string;
+  created_at: string;
+}
+
 export interface Task {
   id: string;
   title: string;

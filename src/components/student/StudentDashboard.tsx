@@ -23,7 +23,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
 
   useEffect(() => {
     const fetchStudentAndNFTRequests = async () => {
-      if (!studentId) { // Handle case where studentId is not provided
+      if (!studentId) {
         setStudentData(null);
         setXlmBalance(null);
         setNftRequests([]);

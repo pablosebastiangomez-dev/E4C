@@ -145,9 +145,11 @@ export function MyTasks({ studentId }: MyTasksProps) {
                 {getStatusBadge(st.status)}
               </div>
               <p className="text-gray-600 mb-2">{taskDetail.subject} - {taskDetail.points} puntos</p>
-              <p className="text-sm text-gray-500 mb-3">Fecha Límite: {new Date(taskDetail.dueDate).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-500 mb-3">
+                Fecha Límite: {taskDetail.dueDate ? new Date(taskDetail.dueDate).toLocaleDateString() : 'N/A'}
+              </p>
               
-              {isAssigned && (
+              {(isAssigned || st.status === 'rejected_by_teacher') && (
                 <button
                   onClick={() => handleMarkAsCompleted(st.id)}
                   className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"

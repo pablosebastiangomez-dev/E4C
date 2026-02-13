@@ -5,9 +5,10 @@ import { CheckCircle, Clock, XCircle, User, BookOpen } from 'lucide-react';
 
 interface TaskReviewProps {
   teacherId: string;
+  onTasksReviewed?: () => void;
 }
 
-export function TaskReview({ teacherId }: TaskReviewProps) {
+export function TaskReview({ teacherId, onTasksReviewed }: TaskReviewProps) {
   const [studentTasksToReview, setStudentTasksToReview] = useState<StudentTask[]>([]);
   const [tasksDetails, setTasksDetails] = useState<Map<string, Task>>(new Map());
   const [studentsDetails, setStudentsDetails] = useState<Map<string, Student>>(new Map());
@@ -90,7 +91,7 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
     fetchTasksForReview();
   }, [teacherId]);
 
-  const handleApproveTask = async (studentTaskId: string, taskPoints: number, studentIdToUpdate: string) => {
+  const handleApproveTask = async (studentTaskId: string) => {
     try {
       // 1. Update student_task status
       const { error: updateError } = await supabase
@@ -100,25 +101,21 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
 
       if (updateError) throw updateError;
 
-      // 2. Update student's tokens and tasks_completed
-      const studentToUpdate = studentsDetails.get(studentIdToUpdate);
-      // Ensure teacherDetail and taskDetail are available for NFTRequest
-      const taskDetail = tasksDetails.get(studentTasksToReview.find(st => st.id === studentTaskId)?.task_id || '');
+      // As per user's instruction, teacher does not directly assign tokens.
+      // The task is sent to the validator after teacher approval.
+      // 2. No student token/tasksCompleted update here.
 
-      if (!studentToUpdate || !teacherDetail || !taskDetail) {
-        console.error("Missing student, teacher, or task details for NFT request creation.");
+      // Fetch studentTask, student and task details for NFTRequest creation
+      const studentTask = studentTasksToReview.find(st => st.id === studentTaskId);
+      const studentToUpdate = studentsDetails.get(studentTask?.student_id || ''); // Get student detail from map
+      const taskDetail = tasksDetails.get(studentTask?.task_id || ''); // Get task detail from map
+
+      if (!studentTask || !studentToUpdate || !teacherDetail || !taskDetail) {
+        console.error("Missing student task, student, teacher, or task details for NFT request creation.");
         return;
       }
-      
-      const newTokens = (studentToUpdate.tokens || 0) + taskPoints;
-      const newTasksCompleted = (studentToUpdate.tasksCompleted || 0) + 1;
-      const { error: studentUpdateError } = await supabase
-        .from('students')
-        .update({ tokens: newTokens, tasksCompleted: newTasksCompleted })
-        .eq('id', studentIdToUpdate);
-      if (studentUpdateError) throw studentUpdateError;
-      
-      alert('Tarea aprobada y tokens asignados al estudiante.');
+
+      alert('Tarea aprobada y enviada al validador.');
 
       // 3. Create NFTRequest for validator flow
       const newNFTRequest = {
@@ -129,13 +126,13 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
         description: taskDetail.description,
         evidence: `Tarea #${taskDetail.id} completada por ${studentToUpdate.name} y aprobada por el docente.`, // Placeholder evidence
         requestDate: new Date().toISOString(),
-        teacherName: teacherDetail.name, // Assuming teacherDetail is available
-        teacherId: teacherDetail.id, // Assuming teacherDetail is available
+        teacherName: teacherDetail.name, // Using the fetched teacherDetail
+        teacherId: teacherDetail.id, // Using the fetched teacherDetail
         status: 'pending-validator',
-        teacherSignature: {
+        teacherSignature: JSON.stringify({
           name: teacherDetail.name,
           timestamp: new Date().toISOString(),
-        },
+        }),
       };
 
       const { error: nftRequestError } = await supabase
@@ -146,6 +143,7 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
       alert('Solicitud de NFT enviada al validador.');
 
       fetchTasksForReview(); // Re-fetch to update the list
+      onTasksReviewed?.(); // Notify parent to re-fetch pending count
     } catch (err: any) {
       console.error('Error approving task:', err);
       setError('Error al aprobar la tarea.');
@@ -162,6 +160,7 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
       if (updateError) throw updateError;
       alert('Tarea rechazada.');
       fetchTasksForReview(); // Re-fetch to update the list
+      onTasksReviewed?.(); // Notify parent to re-fetch pending count
     } catch (err: any) {
       console.error('Error rejecting task:', err);
       setError('Error al rechazar la tarea.');
@@ -224,6 +223,9 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
                     <BookOpen className="w-4 h-4" /> {taskDetail.subject} - {taskDetail.points} puntos
                   </p>
                   <p className="text-sm text-gray-500 ml-5">
+                    Fecha Límite: {taskDetail.dueDate ? new Date(taskDetail.dueDate).toLocaleDateString() : 'N/A'}
+                  </p>
+                  <p className="text-sm text-gray-500 ml-5">
                     Completada: {new Date(st.completed_date || '').toLocaleDateString()}
                   </p>
                 </div>
@@ -233,7 +235,7 @@ export function TaskReview({ teacherId }: TaskReviewProps) {
               {st.status === 'completed' && (
                 <div className="flex gap-2 mt-4">
                   <button
-                    onClick={() => handleApproveTask(st.id, taskDetail.points, studentDetail.id)}
+                    onClick={() => handleApproveTask(st.id)}
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                   >
                     Aprobar Tarea

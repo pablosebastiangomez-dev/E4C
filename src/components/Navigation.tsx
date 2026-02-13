@@ -6,18 +6,14 @@ import { AuthStatus } from './auth/AuthStatus'; // Import AuthStatus
 
 
 interface NavigationProps {
-  allStudents: Student[];
-  currentSelectedStudent: Student | null;
-  onSelectStudent: (student: Student | null) => void;
-  allTeachers: Teacher[];
-  currentSelectedTeacher: Teacher | null;
-  onSelectTeacher: (teacher: Teacher | null) => void;
   children: React.ReactNode;
 }
 
-export function Navigation({ allStudents, currentSelectedStudent, onSelectStudent, allTeachers, currentSelectedTeacher, onSelectTeacher }: NavigationProps) {
-  const { user, switchUserRole, signOut } = useAuth();
+export function Navigation({ children }: NavigationProps) {
+  const { user, switchUserRole, signOut, allStudents, allTeachers } = useAuth();
   const userRole = user?.user_metadata.role as UserRole || 'unauthenticated';
+  const currentSelectedStudentId = userRole === 'student' ? user?.id : '';
+  const currentSelectedTeacherId = userRole === 'teacher' ? user?.id : '';
 
   const roles: { id: UserRole; label: string, icon: React.ComponentType<any> }[] = [
     { id: 'admin', label: 'Admin', icon: Shield },
@@ -28,23 +24,18 @@ export function Navigation({ allStudents, currentSelectedStudent, onSelectStuden
   ];
 
   const handleRoleChange = (role: UserRole) => {
-    if (switchUserRole) {
-      switchUserRole(role);
-    }
+    switchUserRole(role);
   };
 
   const handleStudentChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value;
-    const student = allStudents.find(s => s.id === selectedId) || null;
-    onSelectStudent(student);
+    switchUserRole('student', selectedId);
   };
 
   const handleTeacherChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value;
-    const teacher = allTeachers.find(t => t.id === selectedId) || null;
-    onSelectTeacher(teacher);
+    switchUserRole('teacher', selectedId);
   };
-
 
   return (
     <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
@@ -55,12 +46,12 @@ export function Navigation({ allStudents, currentSelectedStudent, onSelectStuden
               Edu&Chain
             </h1>
             {/* Student Selector */}
-            {allStudents.length > 0 && userRole === 'student' && (
+            {allStudents.length > 0 && (userRole === 'student') && (
               <div className="flex items-center gap-2">
                 <label htmlFor="student-selector" className="text-gray-600">Alumno:</label>
                 <select
                   id="student-selector"
-                  value={currentSelectedStudent?.id || ''}
+                  value={currentSelectedStudentId}
                   onChange={handleStudentChange}
                   className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
@@ -73,12 +64,12 @@ export function Navigation({ allStudents, currentSelectedStudent, onSelectStuden
               </div>
             )}
             {/* Teacher Selector */}
-            {allTeachers.length > 0 && userRole === 'teacher' && (
+            {allTeachers.length > 0 && (userRole === 'teacher') && (
               <div className="flex items-center gap-2">
                 <label htmlFor="teacher-selector" className="text-gray-600">Docente:</label>
                 <select
                   id="teacher-selector"
-                  value={currentSelectedTeacher?.id || ''}
+                  value={currentSelectedTeacherId}
                   onChange={handleTeacherChange}
                   className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-2 focus:ring-indigo-500"
                 >

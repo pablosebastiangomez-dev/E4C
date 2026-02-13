@@ -10,4 +10,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
 console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Anon Key (first 10 chars):', supabaseAnonKey.substring(0, 10));
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
