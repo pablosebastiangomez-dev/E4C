@@ -2,11 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { AuthProvider } from './authContext.tsx'; // Import AuthProvider
+import { AuthProvider } from './authContext.tsx'; // Importar AuthProvider
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider> {/* Wrap App with AuthProvider */}
+    <AuthProvider> {/* Envolver App con AuthProvider */}
       <App />
     </AuthProvider>
   </React.StrictMode>,

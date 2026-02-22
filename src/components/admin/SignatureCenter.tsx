@@ -62,7 +62,7 @@ export function SignatureCenter({ requests, onApprove, onReject }: SignatureCent
               <Filter className="w-4 h-4 text-gray-600" />
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="all">Todas</option>

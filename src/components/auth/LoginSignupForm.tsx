@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../authContext';
-import logo from '../../assets/Logo Edu&Chain.png';
+import logo from '../../assets/Logo E4C.png';
 
 export function LoginSignupForm() {
   // Estado para alternar entre el formulario de 'Login' y 'Signup'.
@@ -26,7 +26,7 @@ export function LoginSignupForm() {
       } else {
         await signUp();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -37,7 +37,7 @@ export function LoginSignupForm() {
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="text-center mb-6">
-          <img src={logo} alt="Edu&Chain Logo" className="mx-auto h-32" />
+          <img src={logo} alt="E4C Logo" className="mx-auto h-32" />
         </div>
         <h2 className="text-2xl font-bold text-center mb-6">
           {isLogin ? 'Iniciar Sesión' : 'Registrarse'}

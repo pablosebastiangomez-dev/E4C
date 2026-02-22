@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import type { StudentTask, Task, Student, Teacher } from '../../types';
-import { CheckCircle, Clock, XCircle, User, BookOpen } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, User, BookOpen, Filter, Search } from 'lucide-react';
 
 interface TaskReviewProps {
   teacherId: string;
@@ -16,242 +16,182 @@ export function TaskReview({ teacherId, onTasksReviewed }: TaskReviewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTasksForReview = async () => {
+  // Estados de Filtro
+  const [filterEscuela, setFilterEscuela] = useState('');
+  const [filterCurso, setFilterCurso] = useState('');
+  const [searchTerm, setSearchQuery] = useState('');
+
+  const fetchTasksForReview = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      // Fetch teacher details
-      const { data: currentTeacher, error: teacherError } = await supabase
-        .from('teachers')
-        .select('*')
-        .eq('id', teacherId)
-        .single();
-      
-      if (teacherError) throw teacherError;
+      const { data: currentTeacher } = await supabase.from('teachers').select('*').eq('id', teacherId).single();
       setTeacherDetail(currentTeacher as Teacher);
 
-      // 1. Fetch student_tasks that are 'completed'
-      const { data: studentTasksData, error: studentTasksError } = await supabase
+      // Obtener todas las tareas del profesor para filtrar las entregas
+      const { data: teacherTasks } = await supabase.from('tasks').select('id').eq('teacherid', teacherId);
+      const teacherTaskIds = new Set(teacherTasks?.map(t => t.id) || []);
+
+      const { data: studentTasksData } = await supabase
         .from('student_tasks')
         .select('*')
-        .eq('status', 'completed'); // Only fetch tasks marked as completed by students
+        .eq('status', 'completed');
 
-      if (studentTasksError) throw studentTasksError;
+      const filteredByTeacher = studentTasksData?.filter(st => teacherTaskIds.has(st.task_id)) || [];
+      setStudentTasksToReview(filteredByTeacher);
 
-      // Filter by tasks created by this teacher
-      const { data: teacherTasks, error: teacherTasksError } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('teacherid', teacherId);
+      // Detalles de tareas y alumnos
+      const uniqueTaskIds = [...new Set(filteredByTeacher.map(st => st.task_id))];
+      const uniqueStudentIds = [...new Set(filteredByTeacher.map(st => st.student_id))];
 
-      if (teacherTasksError) throw teacherTasksError;
+      const [tasksRes, studentsRes] = await Promise.all([
+        supabase.from('tasks').select('*').in('id', uniqueTaskIds),
+        supabase.from('students').select('*').in('id', uniqueStudentIds)
+      ]);
 
-      const teacherTaskIds = new Set(teacherTasks.map(t => t.id));
-      const filteredStudentTasks = studentTasksData.filter(st => teacherTaskIds.has(st.task_id));
+      const tMap = new Map();
+      tasksRes.data?.forEach(t => tMap.set(t.id, t));
+      setTasksDetails(tMap);
 
-      setStudentTasksToReview(filteredStudentTasks || []);
+      const sMap = new Map();
+      studentsRes.data?.forEach(s => sMap.set(s.id, s));
+      setStudentsDetails(sMap);
 
-      // 2. Collect unique task_ids and student_ids
-      const uniqueTaskIds = [...new Set(filteredStudentTasks.map(st => st.task_id))];
-      const uniqueStudentIds = [...new Set(filteredStudentTasks.map(st => st.student_id))];
-
-      // 3. Fetch details for these tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .in('id', uniqueTaskIds);
-
-      if (tasksError) throw tasksError;
-
-      const detailsMap = new Map<string, Task>();
-      tasksData.forEach(task => detailsMap.set(task.id, task as Task));
-      setTasksDetails(detailsMap);
-
-      // 4. Fetch details for these students
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('*')
-        .in('id', uniqueStudentIds);
-
-      if (studentsError) throw studentsError;
-
-      const studentsMap = new Map<string, Student>();
-      studentsData.forEach(student => studentsMap.set(student.id, student as Student));
-      setStudentsDetails(studentsMap);
-
-    } catch (err: any) {
-      console.error('Error fetching tasks for review:', err);
-      setError('Error al cargar las tareas para revisión.');
+    } catch (err) {
+      console.error(err);
+      setError('Error cargando tareas');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchTasksForReview();
   }, [teacherId]);
 
-  const handleApproveTask = async (studentTaskId: string) => {
+  useEffect(() => { fetchTasksForReview(); }, [fetchTasksForReview]);
+
+  // Lógica de Filtrado y Ordenado
+  const processedTasks = useMemo(() => {
+    return studentTasksToReview
+      .map(st => ({
+        ...st,
+        task: tasksDetails.get(st.task_id),
+        student: studentsDetails.get(st.student_id)
+      }))
+      .filter(item => {
+        if (!item.student || !item.task) return false;
+        const matchEscuela = filterEscuela ? item.student.escuela === filterEscuela : true;
+        const matchCurso = filterCurso ? item.student.curso === filterCurso : true;
+        const matchSearch = item.student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            item.task.title.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchEscuela && matchCurso && matchSearch;
+      })
+      .sort((a, b) => {
+        // Ordenar por Escuela, luego por Curso
+        const escComp = (a.student?.escuela || '').localeCompare(b.student?.escuela || '');
+        if (escComp !== 0) return escComp;
+        return (a.student?.curso || '').localeCompare(b.student?.curso || '');
+      });
+  }, [studentTasksToReview, tasksDetails, studentsDetails, filterEscuela, filterCurso, searchTerm]);
+
+  const handleApproveTask = async (st: any) => {
     try {
-      // 1. Update student_task status
-      const { error: updateError } = await supabase
-        .from('student_tasks')
-        .update({ status: 'teacher_approved' })
-        .eq('id', studentTaskId);
-
-      if (updateError) throw updateError;
-
-      // As per user's instruction, teacher does not directly assign tokens.
-      // The task is sent to the validator after teacher approval.
-      // 2. No student token/tasksCompleted update here.
-
-      // Fetch studentTask, student and task details for NFTRequest creation
-      const studentTask = studentTasksToReview.find(st => st.id === studentTaskId);
-      const studentToUpdate = studentsDetails.get(studentTask?.student_id || ''); // Get student detail from map
-      const taskDetail = tasksDetails.get(studentTask?.task_id || ''); // Get task detail from map
-
-      if (!studentTask || !studentToUpdate || !teacherDetail || !taskDetail) {
-        console.error("Missing student task, student, teacher, or task details for NFT request creation.");
-        return;
-      }
-
-      alert('Tarea aprobada y enviada al validador.');
-
-      // 3. Create NFTRequest for validator flow
+      await supabase.from('student_tasks').update({ status: 'teacher_approved' }).eq('id', st.id);
+      
       const newNFTRequest = {
         id: crypto.randomUUID(),
-        studentId: studentToUpdate.id,
-        studentName: studentToUpdate.name,
-        achievementName: `Completó: ${taskDetail.title}`,
-        description: taskDetail.description,
-        evidence: `Tarea #${taskDetail.id} completada por ${studentToUpdate.name} y aprobada por el docente.`, // Placeholder evidence
+        studentId: st.student.id,
+        studentName: st.student.name,
+        achievementName: `Tarea Completada: ${st.task.title}`,
+        description: st.task.description,
+        evidence: `Tarea #${st.task.id} corregida y aprobada por el docente. Recompensa: ${st.task.points} E4C.`,
         requestDate: new Date().toISOString(),
-        teacherName: teacherDetail.name, // Using the fetched teacherDetail
-        teacherId: teacherDetail.id, // Using the fetched teacherDetail
+        teacherName: teacherDetail?.name,
+        teacherId: teacherDetail?.id,
         status: 'pending-validator',
-        teacherSignature: JSON.stringify({
-          name: teacherDetail.name,
-          timestamp: new Date().toISOString(),
-        }),
+        teacherSignature: { name: teacherDetail?.name, timestamp: new Date().toISOString() },
       };
 
-      const { error: nftRequestError } = await supabase
-        .from('nft_requests')
-        .insert([newNFTRequest]);
-
-      if (nftRequestError) throw nftRequestError;
-      alert('Solicitud de NFT enviada al validador.');
-
-      fetchTasksForReview(); // Re-fetch to update the list
-      onTasksReviewed?.(); // Notify parent to re-fetch pending count
-    } catch (err: any) {
-      console.error('Error approving task:', err);
-      setError('Error al aprobar la tarea.');
+      await supabase.from('nft_requests').insert([newNFTRequest]);
+      alert('Aprobada y enviada al validador');
+      fetchTasksForReview();
+      onTasksReviewed?.();
+    } catch (err) {
+      alert('Error al aprobar');
     }
   };
 
-  const handleRejectTask = async (studentTaskId: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('student_tasks')
-        .update({ status: 'rejected_by_teacher' })
-        .eq('id', studentTaskId);
+  const schools = useMemo(() => [...new Set(Array.from(studentsDetails.values()).map(s => s.escuela).filter(Boolean))], [studentsDetails]);
 
-      if (updateError) throw updateError;
-      alert('Tarea rechazada.');
-      fetchTasksForReview(); // Re-fetch to update the list
-      onTasksReviewed?.(); // Notify parent to re-fetch pending count
-    } catch (err: any) {
-      console.error('Error rejecting task:', err);
-      setError('Error al rechazar la tarea.');
-    }
-  };
-
-  const getStatusBadge = (status: StudentTask['status']) => {
-    switch (status) {
-      case 'completed':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
-            <Clock className="inline w-3 h-3 mr-1" />
-            Pendiente de tu revisión
-          </span>
-        );
-      case 'teacher_approved':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-            <CheckCircle className="inline w-3 h-3 mr-1" />
-            Aprobada por ti
-          </span>
-        );
-      case 'rejected_by_teacher':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
-            <XCircle className="inline w-3 h-3 mr-1" />
-            Rechazada por ti
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  if (loading) return <div className="text-center py-4">Cargando tareas para revisión...</div>;
-  if (error) return <div className="text-center py-4 text-red-600">{error}</div>;
+  if (loading) return <div className="p-8 text-center">Cargando tareas pendientes...</div>;
 
   return (
-    <div className="space-y-4">
-      {studentTasksToReview.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No hay tareas pendientes de revisión.
+    <div className="space-y-6">
+      {/* Barra de Filtros */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Buscar</label>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Nombre o tarea..." 
+              value={searchTerm}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 p-2 border border-gray-200 rounded-lg text-sm"
+            />
+          </div>
         </div>
-      ) : (
-        studentTasksToReview.map(st => {
-          const taskDetail = tasksDetails.get(st.task_id);
-          const studentDetail = studentsDetails.get(st.student_id);
+        <div className="w-48">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Escuela</label>
+          <select value={filterEscuela} onChange={e => setFilterEscuela(e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg text-sm">
+            <option value="">Todas las escuelas</option>
+            {schools.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="w-32">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Curso</label>
+          <select value={filterCurso} onChange={e => setFilterCurso(e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg text-sm">
+            <option value="">Todos</option>
+            <option value="primero">Primero</option>
+            <option value="segundo">Segundo</option>
+            <option value="tercero">Tercero</option>
+            <option value="cuarto">Cuarto</option>
+            <option value="quinto">Quinto</option>
+            <option value="sexto">Sexto</option>
+          </select>
+        </div>
+      </div>
 
-          if (!taskDetail || !studentDetail) return null;
-
-          return (
-            <div key={st.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="text-lg font-semibold">{taskDetail.title}</h3>
+      <div className="space-y-4">
+        {processedTasks.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-gray-400">
+            No hay entregas que coincidan con los filtros.
+          </div>
+        ) : (
+          processedTasks.map(item => (
+            <div key={item.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded uppercase">{item.student?.escuela}</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase">{item.student?.curso}° "{item.student?.division}"</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">{item.task?.title}</h3>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <User className="w-4 h-4" /> {studentDetail.name} ({studentDetail.email})
+                    <User size={14} className="text-gray-400" /> {item.student?.name}
                   </p>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <BookOpen className="w-4 h-4" /> {taskDetail.subject} - {taskDetail.points} puntos
-                  </p>
-                  <p className="text-sm text-gray-500 ml-5">
-                    Fecha Límite: {taskDetail.dueDate ? new Date(taskDetail.dueDate).toLocaleDateString() : 'N/A'}
-                  </p>
-                  <p className="text-sm text-gray-500 ml-5">
-                    Completada: {new Date(st.completed_date || '').toLocaleDateString()}
-                  </p>
+                  <p className="text-xs text-gray-500 italic">Materia: {item.task?.subject} • Recompensa: {item.task?.points} E4C</p>
                 </div>
-                {getStatusBadge(st.status)}
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => handleApproveTask(item)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center gap-2">
+                    <CheckCircle size={16} /> Aprobar
+                  </button>
+                  <button className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center gap-2">
+                    <XCircle size={16} /> Rechazar
+                  </button>
+                </div>
               </div>
-              
-              {st.status === 'completed' && (
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={() => handleApproveTask(st.id)}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                  >
-                    Aprobar Tarea
-                  </button>
-                  <button
-                    onClick={() => handleRejectTask(st.id)}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    Rechazar Tarea
-                  </button>
-                </div>
-              )}
             </div>
-          );
-        })
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }

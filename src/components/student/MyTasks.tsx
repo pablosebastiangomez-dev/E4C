@@ -40,7 +40,7 @@ export function MyTasks({ studentId }: MyTasksProps) {
         tasksData.forEach(task => detailsMap.set(task.id, task as Task));
         setTasksDetails(detailsMap);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching student tasks:', err);
         setError('Error al cargar tus tareas.');
       } finally {
@@ -67,7 +67,7 @@ export function MyTasks({ studentId }: MyTasksProps) {
         )
       );
       alert('Tarea marcada como completada. Esperando aprobación del docente.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error marking task as completed:', err);
       setError('Error al marcar la tarea como completada.');
     }
@@ -144,9 +144,9 @@ export function MyTasks({ studentId }: MyTasksProps) {
                 <h3 className="text-lg font-semibold">{taskDetail.title}</h3>
                 {getStatusBadge(st.status)}
               </div>
-              <p className="text-gray-600 mb-2">{taskDetail.subject} - {taskDetail.points} puntos</p>
+              <p className="text-gray-600 mb-2">{taskDetail.subject} - {taskDetail.points} E4C</p>
               <p className="text-sm text-gray-500 mb-3">
-                Fecha Límite: {taskDetail.dueDate ? new Date(taskDetail.dueDate).toLocaleDateString() : 'N/A'}
+                Fecha Límite: {taskDetail.duedate ? new Date(taskDetail.duedate).toLocaleDateString() : 'N/A'}
               </p>
               
               {(isAssigned || st.status === 'rejected_by_teacher') && (

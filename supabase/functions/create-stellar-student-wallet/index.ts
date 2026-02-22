@@ -1,8 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import * as StellarSdk from 'https://esm.sh/stellar-sdk@12.3.0';
-
-const horizonServer = new StellarSdk.Horizon.Server("https://horizon-testnet.stellar.org");
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,139 +6,91 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-async function fundWithFriendbot(publicKey: string) {
-  try {
-    await horizonServer.friendbot(publicKey).call();
-    console.log("SUCCESS! Stellar Testnet account funded.");
-  } catch (e) {
-    console.error("ERROR! Failed to fund Stellar Testnet account:", e);
-    throw new Error("Failed to fund Stellar Testnet account.");
-  }
-}
+const HORIZON_URL = "https://horizon-testnet.stellar.org";
 
-serve(async (req) => {
-  // Handle OPTIONS preflight request for CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      status: 200,
-      headers: corsHeaders
-    });
-  }
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // IMPORTACIÓN BLINDADA
+    const StellarBase = await import("https://esm.sh/stellar-base@12.1.0?bundle&target=browser");
+    const { Keypair, Asset, TransactionBuilder, Networks, Account, Operation } = StellarBase;
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    let studentId: string;
-    let newStudent: any;
+    const payload = await req.json();
+    const studentId = payload.record?.id || payload.student_id;
 
-    try {
-      const payload = await req.json();
-      if (payload.record && payload.record.id) {
-        // Webhook payload structure
-        studentId = payload.record.id;
-        newStudent = payload.record;
-      } else if (payload.student_id) {
-        // Direct call structure (e.g., from another Edge Function)
-        studentId = payload.student_id;
-        const { data, error } = await supabaseClient
-          .from('students')
-          .select('*')
-          .eq('id', studentId)
-          .single();
+    if (!studentId) throw new Error("student_id es requerido");
 
-        if (error || !data) {
-          console.error("Error fetching student for direct call:", error);
-          return new Response(JSON.stringify({ error: "Student not found or failed to fetch." }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        newStudent = data;
-      } else {
-        return new Response(JSON.stringify({ error: "Invalid payload: missing 'record.id' or 'student_id'." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } catch (e) {
-      console.error("Error parsing request payload:", e);
-      return new Response(JSON.stringify({ error: "Invalid JSON payload." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // 1. Obtener datos del estudiante
+    const { data: student } = await supabaseClient.from('students').select('*').eq('id', studentId).single();
+    if (!student) throw new Error("Estudiante no encontrado");
 
-    if (!newStudent || !newStudent.id || !newStudent.name || !newStudent.email) {
-      return new Response(JSON.stringify({ error: "Invalid student data received." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // 2. Generar Keypair
+    const studentKeys = Keypair.random();
+    
+    // 3. Fondear cuenta
+    console.log(`Fondeando cuenta para ${student.name}...`);
+    const fundRes = await fetch(`https://friendbot.stellar.org?addr=${studentKeys.publicKey()}`);
+    if (!fundRes.ok) throw new Error("Error al fondear cuenta del estudiante");
 
-    // Deconstruct student data from newStudent (which could be from webhook or direct fetch)
-    const { name, email, curso, division, escuela } = newStudent;
+    // Esperar sincronización
+    await new Promise(r => setTimeout(r, 6000));
 
-
-    // 1. Create a new Stellar keypair
-    const keypair = StellarSdk.Keypair.random();
-    const publicKey = keypair.publicKey();
-    const secretKey = keypair.secret(); // Esta se entrega al alumno y se OLVIDA
-
-    // 2. Fund the new account
-    await fundWithFriendbot(masterPublicKey);
-
-
-
-    // 4. Update the existing student row with the stellar_public_key
-    const { error: updateError } = await supabaseClient
-      .from('students')
-      .update({ stellar_public_key: publicKey })
-      .eq('id', studentId);
-
-    if (updateError) {
-      console.error("Supabase student update error:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to update student with Stellar public key." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 5. Store the Stellar public key and signers info securely in 'stellar_wallets' table
-    const { error: walletError } = await supabaseClient
+    // 4. Obtener el emisor del token E4C para el Trustline
+    const { data: issuerWallet } = await supabaseClient
       .from('stellar_wallets')
-      .insert([{
-        student_id: studentId,
-        public_key: publicKey,
-        // Eliminamos signers_info y claves de recuperación
-      }]);
+      .select('public_key')
+      .eq('role', 'issuer')
+      .limit(1)
+      .single();
 
-    if (walletError) {
-      console.error("Supabase wallet insertion error:", walletError);
-      // NOTE: Student is already created, so we don't roll back.
-      return new Response(JSON.stringify({ error: "Failed to securely store Stellar wallet secret." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (issuerWallet) {
+      console.log("Estableciendo Trustline para E4C...");
+      const studentRes = await fetch(`${HORIZON_URL}/accounts/${studentKeys.publicKey()}`);
+      const studentData = await studentRes.json();
+      const studentAccount = new Account(studentKeys.publicKey(), studentData.sequence);
+      
+      const E4C_TOKEN = new Asset('E4C', issuerWallet.public_key);
+
+      const txTrust = new TransactionBuilder(studentAccount, {
+        fee: '1000',
+        networkPassphrase: Networks.TESTNET
+      })
+        .addOperation(Operation.changeTrust({ asset: E4C_TOKEN }))
+        .setTimeout(30)
+        .build();
+
+      txTrust.sign(studentKeys);
+      await fetch(`${HORIZON_URL}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ tx: txTrust.toXDR() }).toString()
       });
+      console.log("Trustline OK.");
     }
 
-    // Return the updated student data (or a success message)
-    return new Response(JSON.stringify({
-      message: "Billetera creada. GUARDA TU CLAVE PRIVADA.",
-      stellar_public_key: publicKey,
-      stellar_secret_key: secretKey, // IMPORTANTE: El frontend debe mostrar esto al usuario
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // 5. Guardar datos
+    await supabaseClient.from('students').update({ stellar_public_key: studentKeys.publicKey() }).eq('id', studentId);
+    await supabaseClient.from('stellar_wallets').insert([{
+      student_id: studentId,
+      public_key: studentKeys.publicKey(),
+      secret_key: studentKeys.secret(),
+      role: 'student'
+    }]);
 
-  } catch (error) {
-    console.error("Edge Function internal error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({
+      success: true,
+      publicKey: studentKeys.publicKey(),
+      secretKey: studentKeys.secret()
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  } catch (error: any) {
+    console.error("ERROR WALLET:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

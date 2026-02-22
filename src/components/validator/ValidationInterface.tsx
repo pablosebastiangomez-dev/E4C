@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, CheckCircle, XCircle, Shield, FileText, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle, XCircle, FileText, AlertTriangle } from 'lucide-react';
 import type { NFTRequest } from '../../types';
 
 interface ValidationInterfaceProps {
@@ -14,12 +14,32 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
   const [rejectionReason, setRejectionReason] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
-  // Este es el código que aprueba el envío de NFT
-  const handleApprove = () => {
+  // Este es el código que aprueba el envío de NFT y Tokens
+  const handleApprove = async () => {
     setIsValidating(true);
-    setTimeout(() => {
+    try {
+      // Extraer cantidad de tokens de la evidencia (guardamos "Recompensa: XX E4C" en TaskReview)
+      const amountMatch = request.evidence.match(/Recompensa: (\d+) E4C/);
+      const amount = amountMatch ? amountMatch[1] : "10"; // Fallback a 10 si no se encuentra
+
+      const { data, error } = await supabase.functions.invoke('send-e4c-tokens', {
+        body: { 
+          studentId: request.studentId, 
+          amount: amount,
+          requestId: request.id
+        },
+      });
+
+      if (error) throw error;
+
+      alert(`¡Éxito! Se han transferido ${amount} E4C al estudiante y el certificado ha sido sellado.`);
       onApprove();
-    }, 1500);
+    } catch (err: any) {
+      console.error("Error en validación final:", err);
+      alert(`Error al procesar transferencia Stellar: ${err.message}`);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleReject = () => {
@@ -36,7 +56,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-3 rounded-full">
-                <Shield className="w-6 h-6" />
+                <CheckCircle className="w-6 h-6" />
               </div>
               <div>
                 <h3>Validación Técnica de NFT</h3>

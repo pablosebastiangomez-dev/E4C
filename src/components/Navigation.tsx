@@ -1,8 +1,8 @@
 import React from 'react';
-import { User, BookText, Shield, Fingerprint, Trophy, LogOut } from 'lucide-react';
-import type { UserRole, Student, Teacher } from '../types'; // Import UserRole, Student, Teacher
+import { User, BookText, Fingerprint, Trophy, LogOut } from 'lucide-react';
+import type { UserRole, Student, Teacher } from '../types'; // Importar UserRole, Student, Teacher
 import { useAuth } from '../authContext';
-import { AuthStatus } from './auth/AuthStatus'; // Import AuthStatus
+import { AuthStatus } from './auth/AuthStatus'; // Importar AuthStatus
 
 
 interface NavigationProps {
@@ -10,13 +10,13 @@ interface NavigationProps {
 }
 
 export function Navigation({ children }: NavigationProps) {
-  const { user, switchUserRole, signOut, allStudents, allTeachers } = useAuth();
+  const { user, switchUserRole, signOut, allStudents, allTeachers, allValidators } = useAuth();
   const userRole = user?.user_metadata.role as UserRole || 'unauthenticated';
   const currentSelectedStudentId = userRole === 'student' ? user?.id : '';
   const currentSelectedTeacherId = userRole === 'teacher' ? user?.id : '';
 
-  const roles: { id: UserRole; label: string, icon: React.ComponentType<any> }[] = [
-    { id: 'admin', label: 'Admin', icon: Shield },
+  const roles: { id: UserRole; label: string, icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'admin', label: 'Admin', icon: BookText },
     { id: 'teacher', label: 'Docente', icon: BookText },
     { id: 'validator', label: 'Validador', icon: Fingerprint },
     { id: 'student', label: 'Estudiante', icon: User },
@@ -43,40 +43,55 @@ export function Navigation({ children }: NavigationProps) {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
             <h1 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent text-xl font-bold">
-              Edu&Chain
+              E4C
             </h1>
+            
             {/* Student Selector */}
-            {allStudents.length > 0 && (userRole === 'student') && (
+            {allStudents.length > 0 && userRole === 'student' && (
               <div className="flex items-center gap-2">
-                <label htmlFor="student-selector" className="text-gray-600">Alumno:</label>
+                <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Alumno:</span>
                 <select
-                  id="student-selector"
-                  value={currentSelectedStudentId}
-                  onChange={handleStudentChange}
-                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  value={user?.id || ''}
+                  onChange={(e) => switchUserRole('student', e.target.value)}
+                  className="px-3 py-1 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-indigo-50/50 text-sm outline-none"
                 >
-                  {allStudents.map(student => (
-                    <option key={student.id} value={student.id}>
-                      {student.name}
-                    </option>
+                  <option value="" disabled>Seleccionar...</option>
+                  {allStudents.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.curso}° "{s.division}")</option>
                   ))}
                 </select>
               </div>
             )}
+
             {/* Teacher Selector */}
-            {allTeachers.length > 0 && (userRole === 'teacher') && (
+            {allTeachers.length > 0 && userRole === 'teacher' && (
               <div className="flex items-center gap-2">
-                <label htmlFor="teacher-selector" className="text-gray-600">Docente:</label>
+                <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">Docente:</span>
                 <select
-                  id="teacher-selector"
-                  value={currentSelectedTeacherId}
-                  onChange={handleTeacherChange}
-                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-2 focus:ring-indigo-500"
+                  value={user?.id || ''}
+                  onChange={(e) => switchUserRole('teacher', e.target.value)}
+                  className="px-3 py-1 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 bg-purple-50/50 text-sm outline-none"
                 >
-                  {allTeachers.map(teacher => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.name}
-                    </option>
+                  <option value="" disabled>Seleccionar...</option>
+                  {allTeachers.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Validator Selector */}
+            {allValidators && allValidators.length > 0 && userRole === 'validator' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Validador:</span>
+                <select
+                  value={user?.id || ''}
+                  onChange={(e) => switchUserRole('validator', e.target.value)}
+                  className="px-3 py-1 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 bg-green-50/50 text-sm outline-none"
+                >
+                  <option value="" disabled>Seleccionar validador...</option>
+                  {allValidators.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
               </div>
@@ -108,7 +123,7 @@ export function Navigation({ children }: NavigationProps) {
               <LogOut className="w-4 h-4 text-gray-500" />
               <span>Cerrar Sesión</span>
             </button>
-            <AuthStatus /> {/* AuthStatus component */}
+            <AuthStatus /> {/* Componente AuthStatus */}
           </div>
         </div>
       </div>

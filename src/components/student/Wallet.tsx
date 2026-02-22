@@ -3,7 +3,7 @@ import { type Student, type NFT } from '../../types';
 
 
 interface WalletProps {
-  studentId: string; // Add studentId as a prop
+  studentId: string; // Añadir studentId como prop
   onViewNFT: (nftId: string) => void; // Función callback para ver detalles de un NFT en un modal o nueva vista
   onNavigateToMarketplace: () => void; // Función callback para navegar al Marketplace
 }
@@ -60,7 +60,7 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Encabezado */}
       <div className="flex items-center justify-between">
         <h2>Mi Billetera Digital</h2>
       </div>

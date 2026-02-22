@@ -1,4 +1,4 @@
-import { ArrowLeft, Shield, CheckCircle2, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { type NFT } from '../../types';
 
@@ -136,7 +136,7 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
           {/* Certificación Multi-Firma */}
           <div className="bg-indigo-50 rounded-lg p-6 border-2 border-indigo-200">
             <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-6 h-6 text-indigo-600" />
+              <CheckCircle2 className="w-6 h-6 text-indigo-600" />
               <h3 className="text-indigo-900">Certificación Multi-Firma</h3>
             </div>
             <p className="text-gray-600 mb-4 text-sm">

@@ -70,7 +70,7 @@ export function ValidationCenter({ requests, onApprove, onReject }: ValidationCe
               <Filter className="w-4 h-4 text-gray-600" />
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'validated' | 'rejected')}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="all">Todas</option>

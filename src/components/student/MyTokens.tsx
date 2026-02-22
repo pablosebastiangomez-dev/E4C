@@ -1,116 +1,190 @@
-import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
-import { type TokenTransaction, type Student } from '../../types';
+import { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Calendar, RefreshCcw } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
+import * as StellarSdk from '@stellar/stellar-sdk';
 
 interface MyTokensProps {
-  studentId: string | undefined; // The ID of the current student
+  studentId: string | undefined;
+}
+
+interface StellarTransaction {
+  id: string;
+  amount: string;
+  type: 'earn' | 'spend';
+  description: string;
+  date: string;
+  from?: string;
 }
 
 export function MyTokens({ studentId }: MyTokensProps) {
-  // --- Datos Simulados (Mock Data) ---
-  // En una aplicación real, estos datos vendrían de un contexto global, una API o un backend.
-  const mockStudents: Student[] = [
-    { id: 'demo-student-id', name: 'Jorge Luis Borges', email: 'jorge.borges@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: [], grade: '10th' },
-  ];
+  const [balance, setBalance] = useState<string>('0');
+  const [transactions, setTransactions] = useState<StellarTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const mockTransactions: TokenTransaction[] = [
-    { id: 'trans-1', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 50, type: 'earn', description: 'Tarea completada: Álgebra', date: '2024-01-10T10:00:00Z', teacherName: 'Prof. Sábato' },
-    { id: 'trans-2', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 20, type: 'spend', description: 'Canje: Pegatinas', date: '2024-01-15T14:30:00Z' },
-    { id: 'trans-3', studentId: 'demo-student-id', studentName: 'Jorge Luis Borges', amount: 100, type: 'earn', description: 'Proyecto: Historia Antigua', date: '2024-01-20T09:00:00Z', teacherName: 'Prof. Cortázar' },
-  ];
+  const fetchStellarData = async () => {
+    if (!studentId) return;
+    setLoading(true);
+    setError(null);
 
-  // --- Procesamiento y Cálculo de Datos ---
-  // Busca el estudiante actual y calcula su balance y transacciones.
-  const currentStudent = mockStudents.find((s) => s.id === studentId);
-  const currentBalance = currentStudent?.tokens || 0;
-  const studentTransactions = mockTransactions.filter((transaction) => transaction.studentId === studentId);
+    try {
+      // 1. Obtener la clave pública del estudiante
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('stellar_public_key')
+        .eq('id', studentId)
+        .single();
 
-  // Calcula el total de tokens ganados.
-  const totalEarned = studentTransactions
+      if (studentError || !student?.stellar_public_key) {
+        throw new Error("No se encontró la clave pública Stellar del estudiante.");
+      }
+
+      const publicKey = student.stellar_public_key;
+      const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
+
+      // 2. Obtener el emisor para identificar el token E4C
+      const { data: issuerWallet } = await supabase
+        .from('stellar_wallets')
+        .select('public_key')
+        .eq('role', 'issuer')
+        .limit(1)
+        .single();
+
+      // 3. Obtener balances
+      const account = await server.accounts().accountId(publicKey).call();
+      const e4cBalance = account.balances.find(
+        (b: any) => b.asset_code === 'E4C' && b.asset_issuer === issuerWallet?.public_key
+      );
+      setBalance(e4cBalance ? e4cBalance.balance : '0');
+
+      // 4. Obtener transacciones (pagos)
+      const payments = await server.payments().forAccount(publicKey).limit(10).order('desc').call();
+      
+      const formattedTrans: StellarTransaction[] = payments.records
+        .filter((p: any) => p.type === 'payment' && p.asset_code === 'E4C')
+        .map((p: any) => ({
+          id: p.id,
+          amount: p.amount,
+          type: p.to === publicKey ? 'earn' : 'spend',
+          description: p.to === publicKey ? 'Tokens recibidos' : 'Tokens enviados/canjeados',
+          date: p.created_at,
+          from: p.from
+        }));
+
+      setTransactions(formattedTrans);
+
+    } catch (err: any) {
+      console.error("Error fetching Stellar data:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStellarData();
+  }, [studentId]);
+
+  const totalEarned = transactions
     .filter((t) => t.type === 'earn')
-    .reduce((sum, t) => sum + t.amount, 0);
-  // Calcula el total de tokens gastados. Math.abs para asegurar que el valor sea positivo para la visualización.
-  const totalSpent = Math.abs(
-    studentTransactions
-      .filter((t) => t.type === 'spend')
-      .reduce((sum, t) => sum + t.amount, 0)
-  );
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  
+  const totalSpent = transactions
+    .filter((t) => t.type === 'spend')
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+  if (loading) return <div className="text-center py-10">Cargando tus tokens...</div>;
 
   return (
     <div className="space-y-6">
       {/* Balance Card */}
       <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl">
-        <p className="opacity-90 mb-2">Balance Total</p>
-        <p className="mb-6">{currentBalance} Tokens</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="opacity-90 mb-2 font-medium">Balance E4C</p>
+            <p className="text-5xl font-bold mb-6">
+              {parseFloat(balance).toLocaleString('es-ES', { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <button 
+            onClick={fetchStellarData}
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            title="Actualizar balance"
+          >
+            <RefreshCcw className="w-6 h-6" />
+          </button>
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-            <p className="text-sm opacity-90 mb-1">Ganados</p>
-            <p>+{totalEarned}</p>
+            <p className="text-sm opacity-90 mb-1">Total Ganados</p>
+            <p className="text-xl font-semibold">+{totalEarned.toFixed(2)}</p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-            <p className="text-sm opacity-90 mb-1">Canjeados</p>
-            <p>-{totalSpent}</p>
+            <p className="text-sm opacity-90 mb-1">Total Canjeados</p>
+            <p className="text-xl font-semibold">-{totalSpent.toFixed(2)}</p>
           </div>
         </div>
       </div>
 
       {/* Historial de Transacciones */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-          <h3 className="text-gray-900">Historial de Transacciones</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Todas tus actividades de tokens
-          </p>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Historial de Transacciones</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Actividad reciente en la red Stellar
+            </p>
+          </div>
         </div>
         <div className="divide-y divide-gray-200">
-          {studentTransactions.length === 0 ? (
-            <div className="p-6 text-center text-gray-600">No hay transacciones para mostrar.</div>
+          {transactions.length === 0 ? (
+            <div className="p-10 text-center text-gray-500 italic">No hay transacciones registradas aún.</div>
           ) : (
-            studentTransactions.map((transaction) => (
+            transactions.map((transaction) => (
               <div key={transaction.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
-                    {/* Renderizado dinámico de iconos y colores según el tipo de transacción (ganar/gastar) */}
                     <div
                       className={`p-3 rounded-full ${
                         transaction.type === 'earn' ? 'bg-green-100' : 'bg-red-100'
                       }`}
                     >
                       {transaction.type === 'earn' ? (
-                        <TrendingUp className={`w-5 h-5 text-green-600`} />
+                        <TrendingUp className="w-5 h-5 text-green-600" />
                       ) : (
-                        <TrendingDown className={`w-5 h-5 text-red-600`} />
+                        <TrendingDown className="w-5 h-5 text-red-600" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900 mb-1">{transaction.description}</p>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <p className="text-gray-900 font-semibold mb-1">{transaction.description}</p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Calendar className="w-4 h-4" />
                         <span>
-                          {new Date(transaction.date).toLocaleDateString('es-ES', {
+                          {new Date(transaction.date).toLocaleString('es-ES', {
                             day: 'numeric',
-                            month: 'long',
+                            month: 'short',
+                            year: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </span>
                       </div>
-                      {transaction.teacherName && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Asignado por {transaction.teacherName}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-400 mt-1 truncate max-w-xs">
+                        ID: {transaction.id}
+                      </p>
                     </div>
                   </div>
                   <div
-                    className={`text-right ${
+                    className={`text-right font-bold ${
                       transaction.type === 'earn' ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    <p className="mb-1">
-                      {transaction.type === 'earn' ? '+' : ''}
-                      {transaction.amount}
+                    <p className="text-lg">
+                      {transaction.type === 'earn' ? '+' : '-'}
+                      {parseFloat(transaction.amount).toFixed(2)}
                     </p>
-                    <p className="text-xs text-gray-500">tokens</p>
+                    <p className="text-xs uppercase tracking-wider opacity-70">E4C</p>
                   </div>
                 </div>
               </div>

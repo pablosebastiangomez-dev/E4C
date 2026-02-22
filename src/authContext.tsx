@@ -1,23 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserRole, Student, Teacher, Admin, Validator } from './types';
-import { supabase } from './lib/supabaseClient'; // Import supabase client
+import { supabase } from './lib/supabaseClient'; // Importar cliente de Supabase
 
-// Mock types for Session and User
+// Tipos de simulación para Sesión y Usuario
 interface User {
   id: string;
   app_metadata: {
     provider?: string;
   };
-  user_metadata: {
-    role?: UserRole;
-    name?: string;
-    email?: string;
-    [key: string]: any;
-  };
-  aud: string;
-  created_at: string;
-  [key: string]: any;
-}
+      user_metadata: {
+          role?: UserRole;
+          name?: string;
+          email?: string;
+          [key: string]: unknown;
+      };
+      aud: string;
+      created_at: string;
+      [key: string]: unknown;}
 
 interface Session {
   access_token: string;
@@ -35,12 +34,13 @@ interface AuthContextType {
   signIn: () => Promise<{ user: User | null; session: Session | null }>;
   signUp: () => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
-  switchUserRole: (role: UserRole, id?: string) => void;
+  switchUserRole: (role: UserRole, id?: string) => Promise<void>; // Make it async here too
   allStudents: Student[];
   allTeachers: Teacher[];
   allAdmins: Admin[];
   allValidators: Validator[];
-  refreshUsers: () => Promise<void>;
+  currentRole: UserRole;
+  refreshUsers: () => Promise<{ currentStudents: Student[]; adminsData: Admin[]; teachersData: Teacher[]; validatorsData: Validator[]; }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,6 +48,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [currentRole, setCurrentRole] = useState<UserRole>('admin');
   const [loading, setLoading] = useState(true);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
@@ -69,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshUsers = useCallback(async () => {
-    setLoading(true);
+    // Eliminamos setLoading(true) para evitar que App.tsx desmonte el dashboard
     let currentStudents: Student[] = [];
 
     const { data: studentsData, error: studentsError } = await supabase.from('students').select('*');
@@ -100,13 +101,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setAllValidators(validatorsData as Validator[]);
     }
-    setLoading(false);
-    return currentStudents;
+    return { currentStudents, adminsData: adminsData || [], teachersData: teachersData || [], validatorsData: validatorsData || [] };
   }, []);
 
-  const switchUserRole = (role: UserRole, id?: string) => {
+  const switchUserRole = useCallback(async (role: UserRole, id?: string) => { // Make it async and useCallback
+    setCurrentRole(role);
     let selectedUser: User | null = null;
-    let userMetadata: { role: UserRole; [key: string]: any } = { role };
+    const userMetadata: { role: UserRole; [key: string]: unknown } = { role };
 
     if (role === 'student') {
       const studentIdToUse = id || (allStudents.length > 0 ? allStudents[0].id : undefined);
@@ -139,9 +140,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (role === 'admin') {
       let admin = null;
       if (id) {
-        admin = allAdmins.find(a => a.id === id);
+        // If an ID is explicitly provided, fetch this admin directly from the DB for freshest data
+        const { data: fetchedAdmin, error: fetchError } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (fetchError) {
+          console.error("Error fetching admin for switchUserRole:", fetchError);
+        } else {
+          admin = fetchedAdmin as Admin;
+        }
       } else if (allAdmins.length > 0) {
-        admin = allAdmins[0];
+        admin = allAdmins[0]; // Fallback to first existing admin if no ID provided
       }
 
       if (admin) {
@@ -156,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedUser = {
           id: `mock-admin-id-${Date.now()}`,
           app_metadata: {},
-          user_metadata: { ...userMetadata, name: "Admin (Mock)", email: "mock@admin.com" },
+          user_metadata: { role: 'admin', name: "Admin (Mock)", email: "mock@admin.com" }, // Corregido: 'userMetadata' no estaba definido en este alcance.
           aud: 'authenticated',
           created_at: new Date().toISOString(),
         };
@@ -185,39 +196,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
     setUser(selectedUser);
+    // After setting selectedUser, also set a mock session
+    let mockSession: Session | null = null;
+    if (selectedUser) {
+      mockSession = {
+        access_token: `mock-access-token-${selectedUser.id}-${Date.now()}`, // Unique mock token
+        refresh_token: 'mock-refresh-token',
+        user: selectedUser,
+        token_type: 'Bearer',
+        expires_in: 3600, // 1 hour
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      };
+    }
+    setSession(mockSession); // Después de establecer el usuario seleccionado, también se establece una sesión de prueba.
 
-  };
+  }, [allStudents, allTeachers, allAdmins, allValidators]); // Dependencies need to include relevant state if used inside.
 
   useEffect(() => {
     const initialLoad = async () => {
-      const studentsForInitialUser = await refreshUsers();
+      setLoading(true); // Solo activamos el loading real aquí
+      const { adminsData } = await refreshUsers();
       
-      if (studentsForInitialUser && studentsForInitialUser.length > 0) {
-        const initialStudent = studentsForInitialUser[0];
+      // Priorizar la configuración de un usuario administrador
+      if (adminsData.length > 0) {
+        const initialAdmin = adminsData[0];
         const initialUser = {
-          id: initialStudent.id,
+          id: initialAdmin.id,
           app_metadata: {},
-          user_metadata: { role: 'student', name: initialStudent.name, email: initialStudent.email },
+          user_metadata: { role: 'admin' as UserRole, name: initialAdmin.name, email: initialAdmin.email },
           aud: 'authenticated',
           created_at: new Date().toISOString(),
         };
         setUser(initialUser);
       } else {
-        setUser(null);
+        // Si no existen administradores, crear un usuario administrador de prueba
+        const mockAdminUser = {
+          id: `mock-admin-id-${Date.now()}`,
+          app_metadata: {},
+          user_metadata: { role: 'admin' as UserRole, name: "Admin (Mock)", email: "mock@admin.com" }, // Corregido: 'userMetadata' no estaba definido en este alcance.
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        };
+        setUser(mockAdminUser);
       }
+      setLoading(false); // Terminamos el loading inicial
     };
     
     initialLoad();
   }, [refreshUsers]);
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, switchUserRole, allStudents, allTeachers, allAdmins, allValidators, refreshUsers }}>
+    <AuthContext.Provider value={{ session, user, currentRole, loading, signIn, signUp, signOut, switchUserRole, allStudents, allTeachers, allAdmins, allValidators, refreshUsers }}>
       {children}
     </AuthContext.Provider>
   );
-}; // Added missing closing brace for AuthProvider component
-
-// Hook personalizado para acceder al contexto de autenticación.
+}; // Gancho personalizado para acceder al contexto de autenticación.
 // Proporciona una forma limpia y segura de obtener los datos de sesión y usuario en cualquier componente.
 export const useAuth = () => {
   const context = useContext(AuthContext);

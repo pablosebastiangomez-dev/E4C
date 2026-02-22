@@ -1,203 +1,169 @@
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
-import type { NFTRequest } from '../../types';
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { Clock, CheckCircle, XCircle, User, BookOpen, Search, Filter } from 'lucide-react';
+import type { StudentTask, Task, Student } from '../../types';
 
 interface SubmissionHistoryProps {
-  requests: NFTRequest[];
+  teacherId: string;
 }
 
-export function SubmissionHistory({ requests }: SubmissionHistoryProps) {
-  // --- Procesamiento de Datos para Estadísticas ---
-  // Calcula el número de solicitudes pendientes, aprobadas y rechazadas
-  // para mostrar un resumen en la parte superior del dashboard.
-  const pendingCount = requests.filter(r => r.status === 'pending-admin').length;
-  const approvedCount = requests.filter(r => r.status === 'approved').length;
-  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+export function SubmissionHistory({ teacherId }: SubmissionHistoryProps) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  // --- Función Auxiliar para Configuración de Estado Visual ---
-  // Esta función devuelve un objeto de configuración (icono, etiqueta, colores)
-  // que se utiliza para renderizar dinámicamente la insignia y el estilo de cada solicitud
-  // según su estado actual. Centraliza la lógica de presentación del estado.
-  const getStatusConfig = (status: NFTRequest['status']) => {
-    switch (status) {
-      case 'pending-admin':
-        return {
-          icon: Clock,
-          label: 'Pendiente de Aprobación',
-          color: 'orange',
-          bgColor: 'bg-orange-50',
-          textColor: 'text-orange-700',
-          borderColor: 'border-orange-200',
-          animate: true,
-        };
-      case 'approved':
-        return {
-          icon: CheckCircle,
-          label: 'Aprobado',
-          color: 'green',
-          bgColor: 'bg-green-50',
-          textColor: 'text-green-700',
-          borderColor: 'border-green-200',
-          animate: false,
-        };
-      case 'rejected':
-        return {
-          icon: XCircle,
-          label: 'Rechazado',
-          color: 'red',
-          bgColor: 'bg-red-50',
-          textColor: 'text-red-700',
-          borderColor: 'border-red-200',
-          animate: false,
-        };
-      default:
-        return {
-          icon: Clock,
-          label: 'Pendiente',
-          color: 'gray',
-          bgColor: 'bg-gray-50',
-          textColor: 'text-gray-700',
-          borderColor: 'border-gray-200',
-          animate: false,
-        };
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      // 1. Obtener tareas del profesor
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('teacherid', teacherId);
+      const taskIds = tasks?.map(t => t.id) || [];
+      const tasksMap = new Map(tasks?.map(t => [t.id, t]));
+
+      // 2. Obtener entregas de esas tareas
+      const { data: studentTasks } = await supabase
+        .from('student_tasks')
+        .select('*')
+        .in('task_id', taskIds)
+        .order('assigned_date', { ascending: false });
+
+      // 3. Obtener alumnos involucrados
+      const studentIds = [...new Set(studentTasks?.map(st => st.student_id) || [])];
+      const { data: students } = await supabase.from('students').select('*').in('id', studentIds);
+      const studentsMap = new Map(students?.map(s => [s.id, s]));
+
+      // 4. Combinar datos
+      const combined = studentTasks?.map(st => ({
+        ...st,
+        task: tasksMap.get(st.task_id),
+        student: studentsMap.get(st.student_id)
+      })) || [];
+
+      setHistory(combined);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => { fetchHistory(); }, [teacherId]);
+
+  const filteredHistory = useMemo(() => {
+    return history.filter(item => {
+      const matchSearch = item.student?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.task?.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchStatus = filterStatus === 'all' ? true : item.status === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [history, searchTerm, filterStatus]);
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'assigned':
+        return { label: 'Asignada', color: 'blue', icon: Clock };
+      case 'completed':
+        return { label: 'Entregada (Pendiente)', color: 'orange', icon: Clock };
+      case 'teacher_approved':
+        return { label: 'Aprobada (En Validación)', color: 'amber', icon: CheckCircle };
+      case 'validator_approved':
+        return { label: 'Finalizada (Tokens Enviados)', color: 'green', icon: CheckCircle };
+      case 'rejected_by_teacher':
+      case 'rejected_by_validator':
+        return { label: 'Rechazada', color: 'red', icon: XCircle };
+      default:
+        return { label: status, color: 'gray', icon: Clock };
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Cargando historial de tareas...</div>;
+
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <p className="text-gray-600 text-sm mb-1">Total de Solicitudes</p>
-          <p className="text-gray-900">{requests.length}</p>
+      {/* Filtros */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Buscar</label>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Alumno o Tarea..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 p-2 border border-gray-200 rounded-lg text-sm"
+            />
+          </div>
         </div>
-        <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
-          <p className="text-orange-700 text-sm mb-1">Pendientes</p>
-          <p className="text-orange-900">{pendingCount}</p>
-        </div>
-        <div className="bg-green-50 rounded-xl p-6 border border-green-200">
-          <p className="text-green-700 text-sm mb-1">Aprobadas</p>
-          <p className="text-green-900">{approvedCount}</p>
-        </div>
-        <div className="bg-red-50 rounded-xl p-6 border border-red-200">
-          <p className="text-red-700 text-sm mb-1">Rechazadas</p>
-          <p className="text-red-900">{rejectedCount}</p>
+        <div className="w-48">
+          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Estado</label>
+          <select 
+            value={filterStatus} 
+            onChange={e => setFilterStatus(e.target.value)}
+            className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-white"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="assigned">Asignadas</option>
+            <option value="completed">Para Corregir</option>
+            <option value="teacher_approved">En Validación</option>
+            <option value="validator_approved">Finalizadas</option>
+            <option value="rejected_by_teacher">Rechazadas</option>
+          </select>
         </div>
       </div>
 
-      {/* Lista de Solicitudes */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
-          <h3 className="text-gray-900">Historial de Solicitudes</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Seguimiento de todas tus solicitudes de NFT
-          </p>
-        </div>
-        <div className="p-6">
-          {requests.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
-                No has enviado solicitudes de NFT aún
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Usa el formulario para crear tu primera solicitud
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map(request => {
-                const statusConfig = getStatusConfig(request.status);
-                const StatusIcon = statusConfig.icon;
-
+      {/* Lista de Historial */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <table className="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="p-4 font-bold text-gray-600">Alumno</th>
+              <th className="p-4 font-bold text-gray-600">Tarea / Materia</th>
+              <th className="p-4 font-bold text-gray-600">Estado</th>
+              <th className="p-4 font-bold text-gray-600 text-right">Fecha</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-gray-900">
+            {filteredHistory.length === 0 ? (
+              <tr><td colSpan={4} className="p-12 text-center text-gray-400 italic">No hay registros con estos filtros</td></tr>
+            ) : (
+              filteredHistory.map(item => {
+                const config = getStatusConfig(item.status);
+                const Icon = config.icon;
                 return (
-                  <div
-                    key={request.id}
-                    className={`p-6 border-2 rounded-xl ${statusConfig.borderColor} ${statusConfig.bgColor} transition-all hover:shadow-md`}
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-gray-900">{request.achievementName}</h4>
-                          <span className={`px-3 py-1 rounded-full text-xs ${statusConfig.bgColor} ${statusConfig.textColor} border ${statusConfig.borderColor}`}>
-                            <StatusIcon className={`inline w-3 h-3 mr-1 ${statusConfig.animate ? 'animate-spin' : ''}`} />
-                            {statusConfig.label}
-                          </span>
+                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full bg-${config.color}-100 flex items-center justify-center text-${config.color}-600`}>
+                          <User size={16} />
                         </div>
-                        <p className="text-gray-700 mb-2">{request.description}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span>Estudiante: <span className="text-gray-900">{request.studentName}</span></span>
-                          <span>•</span>
-                          <span>{new Date(request.requestDate).toLocaleDateString('es-ES')}</span>
+                        <div>
+                          <p className="font-bold">{item.student?.name}</p>
+                          <p className="text-[10px] text-gray-500 uppercase">{item.student?.curso}° "{item.student?.division}"</p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Evidencia */}
-                    <div className="bg-white/50 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-gray-600 mb-1">Evidencia:</p>
-                      <p className="text-sm text-gray-900">{request.evidence}</p>
-                    </div>
-
-                    {/* --- Estado de Firma --- */}
-                    {/* Renderizado condicional para mostrar el estado de las firmas del docente y del administrador.
-                        La firma del administrador es la más compleja, ya que puede ser aprobada, rechazada
-                        (con una razón de rechazo) o pendiente. */}
-                    <div className="space-y-2">
-                      {/* Firma del Docente (siempre presente si la solicitud existe) */}
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <div className="flex-1">
-                          <p className="text-gray-900">Firma del Docente</p>
-                          <p className="text-xs text-gray-600">
-                            {request.teacherSignature?.name} • {new Date(request.teacherSignature?.timestamp || '').toLocaleString('es-ES')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Firma del Administrador (condicional) */}
-                      <div className="flex items-center gap-3 text-sm">
-                        {request.adminSignature ? (
-                          <>
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                            <div className="flex-1">
-                              <p className="text-gray-900">Firma del Administrador</p>
-                              <p className="text-xs text-gray-600">
-                                {request.adminSignature.name} • {new Date(request.adminSignature.timestamp).toLocaleString('es-ES')}
-                              </p>
-                            </div>
-                          </>
-                        ) : request.status === 'rejected' ? (
-                          <>
-                            <XCircle className="w-5 h-5 text-red-600" />
-                            <div className="flex-1">
-                              <p className="text-gray-900">Rechazado por Administrador</p>
-                              {request.rejectionReason && (
-                                <p className="text-xs text-red-600 mt-1">
-                                  Razón: {request.rejectionReason}
-                                </p>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-5 h-5 text-orange-600" />
-                            <div className="flex-1">
-                              <p className="text-gray-600">Pendiente de firma del Administrador</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-
-
-
-                  </div>
+                    </td>
+                    <td className="p-4">
+                      <p className="font-medium text-indigo-600">{item.task?.title}</p>
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1"><BookOpen size={10}/> {item.task?.subject}</p>
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-${config.color}-50 text-${config.color}-700 border border-${config.color}-100`}>
+                        <Icon size={12} />
+                        {config.label}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <p className="text-gray-600">{new Date(item.assigned_date).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-gray-400 uppercase">{new Date(item.assigned_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </td>
+                  </tr>
                 );
-              })}
-            </div>
-          )}
-        </div>
+              })
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

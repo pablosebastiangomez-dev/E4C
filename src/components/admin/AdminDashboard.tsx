@@ -1,368 +1,382 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../authContext';
-import { Users, UserPlus, BookCopy, UserCheck, CreditCard, DollarSign } from 'lucide-react'; // All necessary icons
+import type { Teacher } from '../../types';
+import { 
+  Users, UserPlus, BookCopy, UserCheck, CreditCard, 
+  DollarSign, ShieldCheck, Eye, EyeOff, Copy, Check, Hourglass, X 
+} from 'lucide-react';
 import { StudentManagement } from './StudentManagement';
 import { TeacherManagement } from './TeacherManagement';
+import { ValidatorManagement } from './ValidatorManagement';
 import UserApproval from './UserApproval';
+import * as StellarSdk from '@stellar/stellar-sdk';
 
 export default function AdminDashboard() {
-  const { user, allAdmins, allStudents, allTeachers, refreshUsers } = useAuth(); // Get refreshUsers from useAuth
-  const currentAdmin = allAdmins.find(admin => admin.id === user?.id);
+  const { user, allAdmins, allStudents, allTeachers, allValidators, refreshUsers, switchUserRole } = useAuth();
+  
+  const currentAdmin = useMemo(() => {
+    if (!user?.id || !allAdmins.length) return null;
+    return allAdmins.find(admin => admin.id === user.id);
+  }, [user?.id, allAdmins]);
 
-  // Active view for tabs
-  const [activeView, setActiveView] = useState<'students' | 'teachers' | 'approve' | 'stellar-setup'>('students');
-
-  // Stellar setup states
+  const [activeView, setActiveView] = useState<'students' | 'teachers' | 'approve' | 'stellar-setup' | 'validators'>('stellar-setup');
+  
+  // Estados Stellar
   const [isCreatingStellarAccounts, setIsCreatingStellarAccounts] = useState(false);
+  const [isMintingTokens, setIsMintingTokens] = useState(false);
+  const [mintAmount, setMintAmount] = useState('1000');
   const [stellarAccountCreationError, setStellarAccountCreationError] = useState<string | null>(null);
-  const [stellarAccountCreationResult, setStellarAccountCreationResult] = useState<{
-    issuerPublicKey: string;
-    issuerSecretKey: string;
-    distributorPublicKey: string;
-    distributorSecretKey: string;
-  } | null>(null);
+  const [stellarAccountCreationResult, setStellarAccountCreationResult] = useState<any>(null);
+  
+  // Estados Visibilidad y Copiado
+  const [showIssuerSecret, setShowIssuerSecret] = useState(false);
+  const [showDistributorSecret, setShowDistributorSecret] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<'issuer' | 'distributor' | 'created' | null>(null);
 
-  const [adminProfileLoading, setAdminProfileLoading] = useState(false);
-  const [adminProfileCreationError, setAdminProfileCreationError] = useState<string | null>(null);
+  // Estados Modal Éxito y Carga
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [successModal, setSuccessModal] = useState<{show: boolean; name: string; role: string; secretKey: string}>({
+    show: false, name: '', role: '', secretKey: ''
+  });
+  const [showCreatedSecret, setShowCreatedSecret] = useState(false);
+  
+  // Estados para creación de perfil de administrador inicial
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adminProfileLoading, setAdminProfileLoading] = useState(false);
 
-  // Effect to populate stellarAccountCreationResult if admin already has stellar_public_key
   useEffect(() => {
-    if (currentAdmin?.stellar_public_key && !stellarAccountCreationResult) {
-      // In a real scenario, distributor keys might also be fetched from a secure storage
-      // For MVP, we're just showing the issuer public key if it exists
-      setStellarAccountCreationResult({
-        issuerPublicKey: currentAdmin.stellar_public_key,
-        issuerSecretKey: '****** (Stored Securely)',
-        distributorPublicKey: '****** (Not yet implemented to fetch from DB)',
-        distributorSecretKey: '****** (Stored Securely)',
-      });
-    }
-  }, [currentAdmin, stellarAccountCreationResult]);
+    const fetchStellarWallets = async () => {
+      if (!currentAdmin?.id) return;
+      const { data: wallets } = await supabase.from('stellar_wallets').select('*').eq('admin_id', currentAdmin.id);
+      if (wallets && wallets.length === 2) {
+        const issuer = wallets.find(w => w.role === 'issuer');
+        const distributor = wallets.find(w => w.role === 'distributor');
+        if (issuer && distributor) {
+          setStellarAccountCreationResult({
+            issuerPublicKey: issuer.public_key,
+            issuerSecretKey: issuer.secret_key,
+            distributorPublicKey: distributor.public_key,
+            distributorSecretKey: distributor.secret_key,
+          });
+        }
+      }
+    };
+    fetchStellarWallets();
+  }, [currentAdmin?.id]);
 
+  const handleCopy = (text: string, type: 'issuer' | 'distributor' | 'created') => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(type);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleCreateTeacherInSupabase = async (teacherData: any) => {
+    setIsProcessing(true);
+    try {
+      const pair = StellarSdk.Keypair.random();
+      const { data: created, error: tErr } = await supabase.from('teachers').insert([{ ...teacherData, stellar_public_key: pair.publicKey() }]).select().single();
+      if (tErr) throw tErr;
+
+      const { error: wErr } = await supabase.from('stellar_wallets').insert([{
+        teacher_id: created.id, public_key: pair.publicKey(), secret_key: pair.secret(), role: 'teacher', admin_id: null
+      }]);
+      if (wErr) {
+        await supabase.from('teachers').delete().eq('id', created.id);
+        throw wErr;
+      }
+
+      setSuccessModal({ show: true, name: created.name, role: 'Docente', secretKey: pair.secret() });
+      setShowCreatedSecret(false);
+      await refreshUsers();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCreateValidatorInSupabase = async (valData: any) => {
+    setIsProcessing(true);
+    try {
+      const pair = StellarSdk.Keypair.random();
+      const { data: created, error: vErr } = await supabase.from('validators').insert([{ ...valData, stellar_public_key: pair.publicKey() }]).select().single();
+      if (vErr) throw vErr;
+
+      const { error: wErr } = await supabase.from('stellar_wallets').insert([{
+        validator_id: created.id, public_key: pair.publicKey(), secret_key: pair.secret(), role: 'validator', admin_id: null
+      }]);
+      if (wErr) {
+        await supabase.from('validators').delete().eq('id', created.id);
+        throw wErr;
+      }
+
+      setSuccessModal({ show: true, name: created.name, role: 'Validador', secretKey: pair.secret() });
+      setShowCreatedSecret(false);
+      await refreshUsers();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCreateStellarAccounts = async () => {
+    if (!currentAdmin?.id) return;
+    setIsCreatingStellarAccounts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-e4c-accounts-and-emit', { body: { adminId: currentAdmin.id } });
+      if (error) throw error;
+      window.location.reload(); // Recargar para ver los cambios
+    } catch (err: any) {
+      setStellarAccountCreationError(err.message);
+    } finally {
+      setIsCreatingStellarAccounts(false);
+    }
+  };
+
+  const handleMintTokens = async () => {
+    if (!currentAdmin?.id || !mintAmount) return;
+    setIsMintingTokens(true);
+    try {
+      const { error } = await supabase.functions.invoke('mint-e4c-tokens', { body: { adminId: currentAdmin.id, amount: mintAmount } });
+      if (error) throw error;
+      alert("Emisión exitosa");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsMintingTokens(false);
+    }
+  };
 
   const handleCreateAdminProfile = async () => {
     setAdminProfileLoading(true);
-    setAdminProfileCreationError(null);
     try {
-      // For MVP, since we don't have real Supabase auth session, generate a UUID for the profile ID
-                // Use input field values, with fallbacks
-                const newAdminId = crypto.randomUUID(); // Generate a new UUID for the admin profile
-                const adminName = newAdminName || user?.user_metadata?.name || user?.email?.split('@')[0] || "Admin User";
-                const adminEmail = newAdminEmail || user?.email || "admin@example.com";
-                
-                if (!adminName || !adminEmail) {
-                  throw new Error("Nombre y Email son requeridos para crear el perfil de Administrador.");
-                }
-      const { data, error } = await supabase
-        .from('admins')
-        .insert({
-          id: newAdminId, // Use generated UUID
-          name: adminName,
-          email: adminEmail,
-        });
+      const newAdminId = crypto.randomUUID();
+      const adminName = newAdminName || "Admin User";
+      const adminEmail = newAdminEmail || "admin@example.com";
 
-                if (error) throw error;
-                alert('Admin profile created successfully! Please re-select the Admin role.');
-                await refreshUsers(); // Refresh all user data in context
-              } catch (error: any) {      console.error("Error creating admin profile:", error);
-      setAdminProfileCreationError(error.message || "Failed to create admin profile.");
+      const { error } = await supabase
+        .from('admins')
+        .insert({ id: newAdminId, name: adminName, email: adminEmail });
+
+      if (error) throw error;
+      
+      alert('Perfil de administrador creado con éxito');
+      await refreshUsers();
+      await switchUserRole('admin', newAdminId);
+    } catch (error: any) {
+      alert("Error al crear perfil: " + error.message);
     } finally {
       setAdminProfileLoading(false);
     }
   };
 
-  const handleCreateStellarAccounts = async () => {
-    setIsCreatingStellarAccounts(true);
-    setStellarAccountCreationError(null);
-    setStellarAccountCreationResult(null);
+  if (!user) return <div className="p-8 text-center text-lg text-gray-600">Por favor, inicia sesión</div>;
 
-    try {
-      if (!currentAdmin?.id) {
-        throw new Error("No se encontró una sesión de administrador activa o el admin no tiene ID.");
-      }
-
-      // Call the Edge Function
-      const response = await fetch('/api/create-e4c-accounts-and-emit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token || ''}`,
-        },
-        body: JSON.stringify({ adminId: currentAdmin.id })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error en la función Edge: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      console.log("Stellar Data:", data);
-      setStellarAccountCreationResult(data);
-      await refreshUsers(); // Refresh all user data in context
-    } catch (err: any) {
-      console.error("Error:", err);
-      setStellarAccountCreationError(err.message || "Error al conectar con la red Stellar.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handlers for original AdminDashboard functionality (placeholders as before)
-  const handleCreateStudent = async () => { console.log("handleCreateStudent at AdminDashboard level is now a placeholder."); };
-  const handleCreateTeacher = async () => { console.log("handleCreateTeacher at AdminDashboard level is now a placeholder."); };
-
-
-  const userRole = user?.user_metadata?.role; // Get user role from context
-
-  // Display profile creation UI if admin role is active but no profile exists
-  if (userRole === 'admin' && !currentAdmin) {
+  // Lógica para mostrar el formulario de creación de perfil si no existe en la DB
+  if (user.user_metadata?.role === 'admin' && !currentAdmin) {
     return (
-      <div className="flex justify-center items-center h-screen p-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 text-center max-w-md">
-          <h3 className="text-lg font-semibold mb-2">Crear Perfil de Administrador</h3>
-                        <p className="text-gray-700">
-                          Parece que no tienes un perfil de administrador registrado. Por favor, ingresa tus datos para crearlo y acceder a las funciones de administración.
-                        </p>
-                        <input
-                          type="text"
-                          placeholder="Nombre del Administrador"
-                          value={newAdminName}
-                          onChange={(e) => setNewAdminName(e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <input
-                          type="email"
-                          placeholder="Email del Administrador"
-                          value={newAdminEmail}
-                          onChange={(e) => setNewAdminEmail(e.target.value)} // Corrected: setNewAdminEmail
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />          {adminProfileCreationError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <strong className="font-bold">Error:</strong>
-              <span className="block sm:inline ml-2">{adminProfileCreationError}</span>
-            </div>
-          )}
+      <div className="flex justify-center items-center min-h-[80vh] p-8">
+        <div className="bg-white rounded-3xl border border-gray-200 p-10 space-y-6 text-center max-w-md shadow-2xl animate-in fade-in zoom-in duration-300">
+          <div className="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Users className="text-indigo-600" size={40} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Crear Perfil Admin</h3>
+            <p className="text-gray-500 text-sm mt-2">
+              No hemos encontrado un perfil para tu cuenta. Por favor, regístrate para gestionar la red E4C.
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Nombre Completo"
+              value={newAdminName}
+              onChange={(e) => setNewAdminName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
+            <input
+              type="email"
+              placeholder="Email Institucional"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
+          </div>
+
           <button
             onClick={handleCreateAdminProfile}
-            disabled={adminProfileLoading}
-            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            disabled={adminProfileLoading || !newAdminName || !newAdminEmail}
+            className="w-full px-6 py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
-            {adminProfileLoading ? 'Creando perfil...' : 'Crear Perfil de Administrador'}
+            {adminProfileLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Hourglass className="animate-spin" size={20} /> Creando...
+              </span>
+            ) : 'Comenzar Gestión'}
           </button>
         </div>
       </div>
     );
   }
 
-  // Handle cases where user is not an admin or not logged in
-  if (userRole !== 'admin') {
-    return (
-      <div className="flex justify-center items-center h-screen p-8 text-lg text-gray-600">
-        No tienes permisos para acceder a este panel.
-      </div>
-    );
-  }
-  if (!user) {
-    return (
-        <div className="flex justify-center items-center h-screen text-lg">
-            Por favor, inicia sesión para acceder al panel.
-        </div>
-    );
-  }
-  
-  // Existing Admin Dashboard content
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-8 text-white">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-white/10 p-3 rounded-full">
-            <Users className="w-6 h-6" />
-          </div>
+    <div className="space-y-6 relative">
+      {/* Encabezado */}
+      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-8 text-white shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="bg-white/10 p-3 rounded-full"><Users className="w-6 h-6" /></div>
           <div>
-            <h2>Panel de Administrador</h2>
-            <p className="mt-2 opacity-80">
-              Administra usuarios y configura la red Stellar
-            </p>
+            <h2 className="text-2xl font-bold text-white">Panel de Administrador {currentAdmin?.name && ` - ${currentAdmin.name}`}</h2>
+            <p className="opacity-80">Gestión institucional y red Stellar E4C</p>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2">
-        <button
-          onClick={() => setActiveView('students')}
-          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all ${
-            activeView === 'students'
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <UserPlus className="w-5 h-5" />
-          <span>Gestión de Estudiantes</span>
-        </button>
-        <button
-          onClick={() => setActiveView('teachers')}
-          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all ${
-            activeView === 'teachers'
-              ? 'bg-purple-100 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <BookCopy className="w-5 h-5" />
-          <span>Gestión de Docentes</span>
-        </button>
-        <button
-          onClick={() => setActiveView('approve')}
-          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all ${
-            activeView === 'approve'
-              ? 'bg-green-100 text-green-700'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <UserCheck className="w-5 h-5" />
-          <span>Aprobar Usuarios</span>
-        </button>
-        <button
-          onClick={() => setActiveView('stellar-setup')}
-          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all ${
-            activeView === 'stellar-setup'
-              ? 'bg-yellow-100 text-yellow-700'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <CreditCard className="w-5 h-5" />
-          <span>Configuración Stellar</span>
-        </button>
+      {/* Pestañas */}
+      <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2 overflow-x-auto shadow-sm">
+        {[
+          { id: 'students', label: 'Estudiantes', icon: UserPlus, color: 'indigo' },
+          { id: 'teachers', label: 'Docentes', icon: BookCopy, color: 'purple' },
+          { id: 'validators', label: 'Validadores', icon: ShieldCheck, color: 'green' },
+          { id: 'approve', label: 'Aprobar', icon: UserCheck, color: 'blue' },
+          { id: 'stellar-setup', label: 'Stellar', icon: CreditCard, color: 'yellow' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveView(tab.id as any)}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all min-w-[140px] ${
+              activeView === tab.id ? `bg-${tab.color}-100 text-${tab.color}-700 font-bold shadow-sm` : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <tab.icon size={18} />
+            <span className="text-sm">{tab.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Contenido dinámico según la vista activa */}
-      <div>
-        {activeView === 'students' && (
-          <StudentManagement />
-        )}
-        {activeView === 'teachers' && (
-          <TeacherManagement />
-        )}
-        {activeView === 'approve' && (
-          <UserApproval />
-        )}
+      {/* Contenido */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 min-h-[400px] shadow-sm text-gray-900">
+        {activeView === 'students' && <StudentManagement />}
+        {activeView === 'teachers' && <TeacherManagement teachers={allTeachers} onCreateTeacher={handleCreateTeacherInSupabase} />}
+        {activeView === 'validators' && <ValidatorManagement validators={allValidators} onCreateValidator={handleCreateValidatorInSupabase} />}
+        {activeView === 'approve' && <UserApproval />}
+        
         {activeView === 'stellar-setup' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-yellow-600" />
-              Configuración de Cuentas Stellar (E4C)
-            </h3>
-            <p className="text-gray-700">
-              Esta sección permite al administrador configurar las cuentas emisora y distribuidora del token E4C en la red Stellar.
-              <br />
-              La cuenta emisora tiene la capacidad de crear nuevos tokens, y la distribuidora es la encargada de enviar tokens a los estudiantes.
-            </p>
-
-            {/* Display Current Admin Profile Info */}
-            {currentAdmin && (
-              <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg space-y-2">
-                <h4 className="font-semibold text-gray-800">Tu Perfil de Administrador:</h4>
-                <p><strong>ID:</strong> {currentAdmin.id}</p>
-                <p><strong>Nombre:</strong> {currentAdmin.name}</p>
-                <p><strong>Email:</strong> {currentAdmin.email}</p>
-                <p><strong>Stellar Public Key:</strong> {currentAdmin.stellar_public_key || 'No configurada'}</p>
-                <p><strong>Creado el:</strong> {new Date(currentAdmin.created_at).toLocaleDateString()}</p>
-              </div>
-            )}
-
-            {/* Check if current admin already has a stellar_public_key */}
-            {currentAdmin?.stellar_public_key && !stellarAccountCreationResult ? (
-              <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative" role="alert">
-                <strong className="font-bold">Información:</strong>
-                <span className="block sm:inline ml-2">La cuenta emisora Stellar ya está configurada para este administrador.</span>
-                <p className="mt-2 text-sm">Public Key: {currentAdmin.stellar_public_key}</p>
-              </div>
+          <div className="space-y-6">
+            <h3 className="text-lg font-bold flex items-center gap-2"><CreditCard className="text-yellow-600" /> Configuración de Cuentas Stellar (E4C)</h3>
+            
+            {!stellarAccountCreationResult ? (
+              <button onClick={handleCreateStellarAccounts} disabled={isCreatingStellarAccounts} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg">
+                {isCreatingStellarAccounts ? <><Hourglass className="animate-spin" /> Creando cuentas...</> : <><CreditCard /> Configurar Emisor y Distribuidor</>}
+              </button>
             ) : (
-              !stellarAccountCreationResult && ( // Show button only if accounts haven't been created yet and no existing public key
-                <button
-                  onClick={handleCreateStellarAccounts}
-                  disabled={isCreatingStellarAccounts}
-                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isCreatingStellarAccounts ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Creando Cuentas...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-5 h-5" />
-                      Crear Cuentas Emisora y Distribuidora (Solo una vez)
-                    </>
-                  )}
-                </button>
-              )
-            )}
-
-
-            {stellarAccountCreationError && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <strong className="font-bold">Error:</strong>
-                <span className="block sm:inline ml-2">{stellarAccountCreationError}</span>
-              </div>
-            )}
-
-            {stellarAccountCreationResult && (
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative space-y-4" role="alert">
-                <strong className="font-bold">Cuentas Stellar Creadas Exitosamente:</strong>
-                <p className="block">
-                  <span className="font-semibold">Issuer Public Key:</span> {stellarAccountCreationResult.issuerPublicKey}
-                </p>
-                <p className="block">
-                  <span className="font-semibold">Issuer Secret Key:</span> <code className="break-all">{stellarAccountCreationResult.issuerSecretKey}</code>
-                  <span className="text-red-600 block text-xs mt-1">⚠️ ¡GUARDA ESTA CLAVE DE FORMA SEGURA! Nunca la compartas.</span>
-                </p>
-                <p className="block">
-                  <span className="font-semibold">Distributor Public Key:</span> {stellarAccountCreationResult.distributorPublicKey}
-                </p>
-                <p className="block">
-                  <span className="font-semibold">Distributor Secret Key:</span> <code className="break-all">{stellarAccountCreationResult.distributorSecretKey}</code>
-                  <span className="text-red-600 block text-xs mt-1">⚠️ ¡GUARDA ESTA CLAVE DE FORMA SEGURA! Nunca la compartas.</span>
-                </p>
-                <p className="text-sm font-semibold">
-                  Estas claves son esenciales para la gestión de tokens.
-                  En un entorno de producción, las claves secretas deben almacenarse de forma segura en un backend (por ejemplo, Supabase Vault o variables de entorno para Edge Functions) y nunca ser expuestas en el frontend.
-                </p>
-              </div>
-            )}
-
-            {/* Token Management Section */}
-            {stellarAccountCreationResult && (
-              <div className="pt-6 border-t border-gray-200 mt-6 space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
-                  Gestión de Tokens E4C
-                </h3>
-                <p className="text-gray-700">
-                  Una vez que las cuentas Stellar están configuradas, puedes usar la cuenta distribuidora
-                  para emitir más tokens E4C o para transferirlos a otras cuentas.
-                </p>
-                <button
-                  onClick={() => alert('Implementar emisión/transferencia de tokens')}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <DollarSign className="w-5 h-5" />
-                  Emitir/Transferir Más Tokens (Placeholder)
-                </button>
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Issuer */}
+                  <div className="space-y-2 text-gray-900">
+                    <p className="text-xs font-bold text-green-700 uppercase">Cuenta Emisora (Issuer)</p>
+                    <p className="text-[10px] font-mono break-all bg-white p-2 rounded border border-green-100">{stellarAccountCreationResult.issuerPublicKey}</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white p-2 rounded border border-green-100 text-xs font-mono">
+                        {showIssuerSecret ? stellarAccountCreationResult.issuerSecretKey : '*******************************************************'}
+                      </code>
+                      <button onClick={() => setShowIssuerSecret(!showIssuerSecret)} className="p-2 hover:bg-white rounded-lg transition-colors text-gray-500">
+                        {showIssuerSecret ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      <button onClick={() => handleCopy(stellarAccountCreationResult.issuerSecretKey, 'issuer')} className="p-2 hover:bg-white rounded-lg transition-colors text-gray-500">
+                        {copiedKey === 'issuer' ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  {/* Distributor */}
+                  <div className="space-y-2 text-gray-900">
+                    <p className="text-xs font-bold text-green-700 uppercase">Cuenta Distribuidora (Distributor)</p>
+                    <p className="text-[10px] font-mono break-all bg-white p-2 rounded border border-green-100">{stellarAccountCreationResult.distributorPublicKey}</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white p-2 rounded border border-green-100 text-xs font-mono">
+                        {showDistributorSecret ? stellarAccountCreationResult.distributorSecretKey : '*******************************************************'}
+                      </code>
+                      <button onClick={() => setShowDistributorSecret(!showDistributorSecret)} className="p-2 hover:bg-white rounded-lg transition-colors text-gray-500">
+                        {showDistributorSecret ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      <button onClick={() => handleCopy(stellarAccountCreationResult.distributorSecretKey, 'distributor')} className="p-2 hover:bg-white rounded-lg transition-colors text-gray-500">
+                        {copiedKey === 'distributor' ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Gestión Tokens */}
+                <div className="pt-6 border-t border-green-200 flex gap-4 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Emitir más E4C</label>
+                    <input type="number" value={mintAmount} onChange={e => setMintAmount(e.target.value)} className="w-full p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500" placeholder="Cantidad" />
+                  </div>
+                  <button onClick={handleMintTokens} disabled={isMintingTokens} className="bg-purple-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-purple-700 shadow-md transition-all">
+                    {isMintingTokens ? "Emitiendo..." : "Emitir Tokens"}
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* OVERLAYS */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[110]">
+          <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+            <Hourglass className="w-12 h-12 text-indigo-600 animate-spin" />
+            <h3 className="font-bold text-gray-800">Creación en proceso...</h3>
+          </div>
+        </div>
+      )}
+
+      {successModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[120]">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-white/20">
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-8 text-white text-center relative">
+              <button onClick={() => setSuccessModal({...successModal, show: false})} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20}/></button>
+              <div className="bg-white/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white/30 shadow-inner">
+                <Check size={40} strokeWidth={3} />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tighter">¡{successModal.role} Creado!</h3>
+              <p className="font-medium opacity-90">{successModal.name}</p>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="bg-gray-50 border-2 border-gray-100 rounded-2xl p-5 space-y-3">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Secret Key</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-white p-2 rounded-xl border border-gray-200 text-xs font-mono break-all leading-relaxed text-gray-800 shadow-sm">
+                    {showCreatedSecret ? successModal.secretKey : '•••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                  </code>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => setShowCreatedSecret(!showCreatedSecret)} className="p-2.5 bg-white hover:bg-gray-100 rounded-xl border border-gray-200 shadow-sm transition-all">
+                      {showCreatedSecret ? <EyeOff size={18} className="text-gray-600"/> : <Eye size={18} className="text-gray-600"/>}
+                    </button>
+                    <button onClick={() => handleCopy(successModal.secretKey, 'created')} className="p-2.5 bg-white hover:bg-gray-100 rounded-xl border border-gray-200 shadow-sm transition-all text-indigo-600">
+                      {copiedKey === 'created' ? <Check size={18} /> : <Copy size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 items-start text-amber-900 shadow-sm">
+                <ShieldCheck size={24} className="shrink-0 text-amber-600" />
+                <p className="text-[11px] leading-relaxed font-medium">
+                  Guarda esta clave ahora. Por tu seguridad, no se guardará en nuestros servidores y no podrá ser recuperada.
+                </p>
+              </div>
+              <button onClick={() => setSuccessModal({...successModal, show: false})} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95">
+                He guardado mi clave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

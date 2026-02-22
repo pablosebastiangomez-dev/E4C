@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, Calendar, Shield, X } from 'lucide-react';
+import { Award, Calendar, X } from 'lucide-react';
 import type { NFTRequest } from '../../types';
 
 interface MyNFTsProps {
@@ -110,7 +110,7 @@ export function MyNFTs({ nfts }: MyNFTsProps) {
 
               <div className="bg-indigo-50 rounded-lg p-6 border border-indigo-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-6 h-6 text-indigo-600" />
+                  <Award className="w-6 h-6 text-indigo-600" />
                   <h4 className="text-indigo-900">Certificación Multi-Firma</h4>
                 </div>
                 <div className="space-y-3">

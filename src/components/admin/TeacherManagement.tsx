@@ -25,16 +25,16 @@ interface TeacherManagementProps {
   onCreateTeacher: (teacher: Omit<Teacher, 'id' | 'stellar_public_key'>) => Promise<void>;
 }
 
-export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManagementProps) { // Removed props
+export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManagementProps) { // Props eliminadas
 
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherEmail, setNewTeacherEmail] = useState('');
-  const [newTeacherSubjects, setNewTeacherSubjects] = useState<string[]>([]); // Changed to array
+  const [newTeacherSubjects, setNewTeacherSubjects] = useState<string[]>([]); // Cambiado a array
   const [newTeacherCurso, setNewTeacherCurso] = useState('');
   const [newTeacherDivision, setNewTeacherDivision] = useState('');
   const [newTeacherEscuela, setNewTeacherEscuela] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null); // New state for selected teacher
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null); // Nuevo estado para el profesor seleccionado
 
 
 
@@ -53,11 +53,11 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
         const newTeacherData = {
           name: newTeacherName,
           email: newTeacherEmail,
-          subjects: newTeacherSubjects, // Pass directly as it's already an array
+          subjects: newTeacherSubjects, // Pasar directamente ya que ya es un array
           curso: newTeacherCurso,
           division: newTeacherDivision,
           escuela: newTeacherEscuela,
-          // stellar_public_key is handled by the parent's onCreateTeacher
+          // stellar_public_key es manejado por el onCreateTeacher del padre
         };
         await onCreateTeacher(newTeacherData);
 
@@ -67,12 +67,12 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
         setNewTeacherCurso('');
         setNewTeacherDivision('');
         setNewTeacherEscuela('');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Fallo total:', err);
         alert(`Error al crear: ${err.message}`);
       }
     } else {
-      alert('Por favor, completa todos los campos.'); // Provide feedback for incomplete form
+      alert('Por favor, completa todos los campos.'); // Proporcionar retroalimentación para el formulario incompleto
     }
   };
 
@@ -110,8 +110,8 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
                   const selectedSubjects = selectedOptions ? selectedOptions.map(option => option.value) : [];
                   setNewTeacherSubjects(selectedSubjects);
                 }}
-                className="w-full" // Basic Tailwind for width
-                classNamePrefix="react-select" // For custom styling if needed
+                className="w-full" // Tailwind básico para el ancho
+                classNamePrefix="react-select" // Para estilos personalizados si es necesario
                 placeholder="Selecciona Materias"
               />
               <select
@@ -212,51 +212,6 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
-            <h3 className="text-gray-900">Lista de Docentes</h3>
-            <div className="mt-4 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar docente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {filteredTeachers.map(teacher => (
-              <div
-                key={teacher.id}
-                className="p-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => setSelectedTeacher(teacher)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{teacher.name}</p>
-                    <p className="text-sm text-gray-500">{teacher.email}</p>
-                    {(teacher.escuela || teacher.curso || teacher.division) && (
-                      <p className="text-sm text-gray-500">
-                        {teacher.escuela}{teacher.escuela && (teacher.curso || teacher.division) ? ' - ' : ''}
-                        {teacher.curso}{teacher.curso && teacher.division ? '° "' : ''}
-                        {teacher.division}{teacher.division ? '"' : ''}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Public Key: {teacher.stellar_public_key}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">{teacher.subjects.join(', ')}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       {selectedTeacher && (
         <div className="flex-1 bg-white rounded-xl border border-gray-200 p-6 space-y-4">
@@ -268,7 +223,7 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
           <p><strong>Curso:</strong> {selectedTeacher.curso}° "{selectedTeacher.division}"</p>
           <p><strong>Escuela:</strong> {selectedTeacher.escuela}</p>
           <p><strong>Public Key Stellar:</strong> {selectedTeacher.stellar_public_key}</p>
-          {/* Add more details as needed */}
+          {/* Agregar más detalles según sea necesario */}
           <button
             onClick={() => setSelectedTeacher(null)}
             className="mt-4 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300"

@@ -1,133 +1,128 @@
-// supabase/functions/create-e4c-accounts-and-emit/index.ts
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
-import * as StellarSdk from "https://esm.sh/@stellar/stellar-sdk@11.3.0";
+import { createClient } from "supabase"
 
-// Configure Stellar Network
-// For production: StellarSdk.Network.usePublicNetwork();
-StellarSdk.Network.useTestNetwork();
-const horizonServer = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-console.log(`Function "create-e4c-accounts-and-emit" started`);
+const HORIZON_URL = "https://horizon-testnet.stellar.org";
 
-serve(async (req) => {
-  const { url, headers } = req;
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: headers.get("Authorization")! } } }
-  );
+/**
+ * EDGE FUNCTION: create-e4c-accounts-and-emit
+ * 
+ * OBJETIVO: Inicializar la infraestructura de tokens E4C de la institución.
+ * 1. Genera un par de claves para el Emisor (Issuer) y otro para el Distribuidor (Distributor).
+ * 2. Activa ambas cuentas en la Testnet de Stellar mediante Friendbot.
+ * 3. Define el activo (Asset) 'E4C'.
+ * 4. Establece un Trustline (vínculo de confianza) en la cuenta del Distribuidor.
+ * 5. Emite el primer millón de tokens desde el Emisor al Distribuidor.
+ * 6. Persiste las llaves de forma segura en Supabase.
+ */
+Deno.serve(async (req) => {
+  // Manejo de CORS Preflight para permitir llamadas desde el navegador
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { adminId } = await req.json();
+    // IMPORTACIÓN DINÁMICA: Usamos un bundle de navegador para evitar dependencias nativas incompatibles con Deno
+    const StellarBase = await import("https://esm.sh/stellar-base@12.1.0?bundle&target=browser");
+    const { Keypair, Asset, Operation, TransactionBuilder, Networks, Account } = StellarBase;
 
-    if (!adminId) {
-      return new Response(JSON.stringify({ error: "Admin ID is required." }), {
-        headers: { "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // PASO 1: Crear cuenta emisora (issuer)
-    const issuerKeypair = StellarSdk.Keypair.random();
-    const issuerPublicKey = issuerKeypair.publicKey();
-    const issuerSecretKey = issuerKeypair.secret();
+    const { adminId } = await req.json().catch(() => ({}));
+    if (!adminId) throw new Error("adminId es requerido para vincular las cuentas");
 
-    // PASO 2: Fondear cuenta emisora usando Friendbot (solo testnet)
-    await fetch(`https://friendbot.stellar.org?addr=${issuerPublicKey}`);
+    // --- PASO 1: GENERACIÓN DE IDENTIDADES CRIPTOGRÁFICAS ---
+    // Creamos pares de claves aleatorios. Issuer es el "banco central", Distributor es la "caja fuerte" institucional.
+    const issuer = Keypair.random();
+    const distributor = Keypair.random();
 
-    // PASO 3: Crear cuenta distribuidora (distributor)
-    const distributorKeypair = StellarSdk.Keypair.random();
-    const distributorPublicKey = distributorKeypair.publicKey();
-    const distributorSecretKey = distributorKeypair.secret();
+    // --- PASO 2: ACTIVACIÓN EN LA RED (FUNDING) ---
+    // En Stellar, una cuenta no existe hasta que tiene un balance mínimo de XLM.
+    // Friendbot nos regala 10,000 XLM en Testnet para activar las cuentas.
+    console.log("Activando cuentas mediante Friendbot...");
+    await Promise.all([
+      fetch(`https://friendbot.stellar.org?addr=${issuer.publicKey()}`),
+      fetch(`https://friendbot.stellar.org?addr=${distributor.publicKey()}`)
+    ]);
 
-    // PASO 4: Crear la cuenta distribuidora desde la cuenta emisora
-    const issuerAccount = await horizonServer.loadAccount(issuerPublicKey);
+    // Esperamos a que los nodos de Stellar procesen las nuevas cuentas (sincronización del ledger)
+    await new Promise(r => setTimeout(r, 6000));
 
-    const createAccountTx = new StellarSdk.TransactionBuilder(issuerAccount, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET
+    // --- PASO 3: DEFINICIÓN DEL ACTIVO E4C ---
+    // Un activo en Stellar se define por su código (E4C) y la clave pública de quien lo emite.
+    const E4C_ASSET = new Asset('E4C', issuer.publicKey());
+
+    // --- PASO 4: ESTABLECER TRUSTLINE (VÍNCULO DE CONFIANZA) ---
+    // Nadie en Stellar puede recibir un token a menos que declare explícitamente que confía en él.
+    // Aquí el Distribuidor habilita la recepción del token E4C.
+    const distRes = await fetch(`${HORIZON_URL}/accounts/${distributor.publicKey()}`);
+    const distData = await distRes.json();
+    const distAccount = new Account(distributor.publicKey(), distData.sequence);
+
+    const txTrust = new TransactionBuilder(distAccount, { 
+      fee: '1000', 
+      networkPassphrase: Networks.TESTNET 
     })
-      .addOperation(StellarSdk.Operation.createAccount({
-        destination: distributorPublicKey,
-        startingBalance: '10' // XLM para fondear la cuenta
-      }))
-      .setTimeout(180)
+      .addOperation(Operation.changeTrust({ asset: E4C_ASSET })) // Operación de confianza
+      .setTimeout(30)
       .build();
 
-    createAccountTx.sign(issuerKeypair);
-    await horizonServer.submitTransaction(createAccountTx);
+    txTrust.sign(distributor); // El distribuidor autoriza la confianza
+    await fetch(`${HORIZON_URL}/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ tx: txTrust.toXDR() }).toString()
+    });
 
-    // PASO 5: Definir el activo E4C
-    const E4C = new StellarSdk.Asset('E4C', issuerPublicKey);
+    // --- PASO 5: EMISIÓN INICIAL (MINTING) ---
+    // El Issuer crea tokens de la "nada" al enviarlos a una cuenta que tiene un Trustline.
+    // Enviamos 1,000,000 de E4C al Distribuidor.
+    const issRes = await fetch(`${HORIZON_URL}/accounts/${issuer.publicKey()}`);
+    const issData = await issRes.json();
+    const issAccount = new Account(issuer.publicKey(), issData.sequence);
 
-    // PASO 6: Crear trustline desde la cuenta distribuidora hacia el activo E4C
-    const distributorAccount = await horizonServer.loadAccount(distributorPublicKey);
-
-    const trustTx = new StellarSdk.TransactionBuilder(distributorAccount, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET
+    const txMint = new TransactionBuilder(issAccount, { 
+      fee: '1000', 
+      networkPassphrase: Networks.TESTNET 
     })
-      .addOperation(StellarSdk.Operation.changeTrust({
-        asset: E4C,
-        limit: '1000000' // Límite opcional de tokens que puede recibir
+      .addOperation(Operation.payment({
+        destination: distributor.publicKey(),
+        asset: E4C_ASSET,
+        amount: '1000000' // Cantidad inicial
       }))
-      .setTimeout(180)
+      .setTimeout(30)
       .build();
 
-    trustTx.sign(distributorKeypair);
-    await horizonServer.submitTransaction(trustTx);
+    txMint.sign(issuer); // El emisor autoriza la creación/pago
+    await fetch(`${HORIZON_URL}/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ tx: txMint.toXDR() }).toString()
+    });
 
-    // PASO 7: Emitir tokens E4C (enviar desde emisor a distribuidor)
-    const issuerAccountReload = await horizonServer.loadAccount(issuerPublicKey);
-
-    const paymentTx = new StellarSdk.TransactionBuilder(issuerAccountReload, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET
-    })
-      .addOperation(StellarSdk.Operation.payment({
-        destination: distributorPublicKey,
-        asset: E4C,
-        amount: '100000' // Cantidad de tokens E4C a emitir
-      }))
-      .setTimeout(180)
-      .build();
-
-    paymentTx.sign(issuerKeypair);
-    await horizonServer.submitTransaction(paymentTx);
-
-    // --- Securely store secret keys (RECOMMENDED) ---
-    // For MVP, returning to frontend for display, but strongly advise storing
-    // these in Supabase Secrets/Vault or another secure backend service.
-    // Example of updating Admin's stellar_public_key in DB
-    const { error: updateError } = await supabaseClient
-      .from('admins')
-      .update({ stellar_public_key: issuerPublicKey }) // Admin's public key is the Issuer
-      .eq('id', adminId);
-
-    if (updateError) {
-      console.error("Error updating admin's stellar_public_key:", updateError);
-      // Decide how to handle this error - it might not be critical enough to fail the entire Stellar setup
-    }
+    // --- PASO 6: PERSISTENCIA EN BASE DE DATOS ---
+    // Guardamos las llaves en stellar_wallets. 
+    // NOTA: En producción, las secret_keys deberían ir a un Vault encriptado.
+    await supabaseClient.from('stellar_wallets').insert([
+      { admin_id: adminId, role: 'issuer', public_key: issuer.publicKey(), secret_key: issuer.secret() },
+      { admin_id: adminId, role: 'distributor', public_key: distributor.publicKey(), secret_key: distributor.secret() }
+    ]);
 
     return new Response(
-      JSON.stringify({
-        issuerPublicKey,
-        issuerSecretKey, // WARNING: Store securely!
-        distributorPublicKey,
-        distributorSecretKey, // WARNING: Store securely!
-        message: "Stellar accounts created and E4C tokens emitted successfully."
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      },
+      JSON.stringify({ success: true, issuer: issuer.publicKey(), distributor: distributor.publicKey() }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
-  } catch (error) {
-    console.error("Error in create-e4c-accounts-and-emit:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { "Content-Type": "application/json" },
-      status: 500,
-    });
+
+  } catch (error: any) {
+    console.error("ERROR CRÍTICO INICIALIZACIÓN:", error.message);
+    return new Response(
+      JSON.stringify({ error: error.message, stack: error.stack }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+    );
   }
-});
+})

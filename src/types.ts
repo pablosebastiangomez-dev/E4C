@@ -7,8 +7,8 @@ export interface Student {
   enrollmentDate: string;
   tokens: number;
   tasksCompleted: number;
-  nfts: string[]; // Array of NFT IDs
-  grade: string; // Added from mockData
+  nfts: string[]; // Array de IDs de NFT
+  grade: string; // Añadido de mockData
   stellar_public_key?: string;
   curso?: string;
   division?: string;
@@ -19,7 +19,7 @@ export interface Teacher {
   id: string;
   name: string;
   email: string;
-  subjects: string[]; // Added from mockData
+  subjects: string[]; // Añadido de mockData
   curso?: string;
   division?: string;
   escuela?: string;
@@ -38,6 +38,7 @@ export interface Validator {
   id: string;
   name: string;
   email: string;
+  escuelas: string[]; // Lista de escuelas asignadas
   stellar_public_key?: string;
   created_at: string;
 }
@@ -46,8 +47,8 @@ export interface Task {
   id: string;
   title: string;
   subject: string;
-  description: string; // Added description
-  dueDate: string;
+  description: string; // Descripción añadida
+  duedate: string;
   points: number;
   status: 'pending' | 'completed';
 }

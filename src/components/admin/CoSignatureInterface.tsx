@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, Shield } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 interface CoSignatureInterfaceProps {
   onApprove: () => void;
@@ -36,7 +36,7 @@ export function CoSignatureInterface({ onApprove, onReject }: CoSignatureInterfa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-3 rounded-full">
-                <Shield className="w-6 h-6" />
+                <CheckCircle className="w-6 h-6" />
               </div>
               <div>
                 <h3>Interfaz de Co-Firma Multi-sig</h3>
