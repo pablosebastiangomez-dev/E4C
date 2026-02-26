@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
-import { v4 as uuidv4 } from "https://deno.land/std@0.203.0/uuid/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,14 +10,19 @@ const corsHeaders = {
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const E4C_ESCROW_ACCOUNT_PUBLIC_KEY = Deno.env.get("E4C_ESCROW_ACCOUNT_PUBLIC_KEY");
 
-Deno.serve(async (req) => {
-  // Manejo de CORS
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+serve(async (req) => {
+  // Manejo inmediato de CORS (Preflight)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
 
   try {
-    // Importación dinámica de Stellar
+    // Importación dinámica "Inmune" a sodium-native
+    // Forzamos el bundle de browser para evitar que busque addons de Node.js
     const StellarBase = await import("https://esm.sh/stellar-base@12.1.0?bundle&target=browser");
-    const { Keypair, Asset, TransactionBuilder, Networks, Account, Operation } = StellarBase;
+    const { Keypair, TransactionBuilder, Asset, Networks, Operation } = StellarBase;
+    // A veces Memo está dentro de StellarBase, a veces es una exportación directa
+    const Memo = StellarBase.Memo || StellarBase.default?.Memo;
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -64,22 +69,34 @@ Deno.serve(async (req) => {
     if (!studentAccountResponse.ok) throw new Error("La cuenta de Stellar del alumno no existe o no tiene saldo.");
     
     const studentAccountData = await studentAccountResponse.json();
-    const sourceAccount = new Account(studentKeys.publicKey(), studentAccountData.sequence);
+    const sourceAccount = new StellarBase.Account(studentKeys.publicKey(), studentAccountData.sequence);
 
-    const transactionMemo = uuidv4(); // Este será nuestro voucher_uuid
+    const transactionMemo = crypto.randomUUID(); // Este será nuestro voucher_uuid
+    
+    let transactionMemoXDR;
+    if (Memo && typeof Memo.text === 'function') {
+      transactionMemoXDR = Memo.text(transactionMemo.substring(0, 28)); // Use the UUID as before
+    } else {
+      console.warn("⚠️ Memo.text no encontrado, procediendo sin memo");
+    }
 
-    const transaction = new TransactionBuilder(sourceAccount, {
+    const transactionBuilder = new TransactionBuilder(sourceAccount, {
       fee: '1000',
-      networkPassphrase: Networks.TESTNET
-    })
-      .addOperation(Operation.payment({
-        destination: E4C_ESCROW_ACCOUNT_PUBLIC_KEY,
-        asset: E4C_ASSET,
-        amount: amount.toString(),
-      }))
-      .addMemo(StellarBase.Memo.text(transactionMemo.substring(0, 28))) // El memo text tiene límite de 28 bytes
-      .setTimeout(30)
-      .build();
+      networkPassphrase: Networks.TESTNET,
+    });
+
+    transactionBuilder.addOperation(Operation.payment({
+      destination: E4C_ESCROW_ACCOUNT_PUBLIC_KEY,
+      asset: E4C_ASSET,
+      amount: amount.toString(),
+    }));
+
+    // Solo añadimos el memo si logramos construirlo
+    if (transactionMemoXDR) {
+      transactionBuilder.addMemo(transactionMemoXDR);
+    }
+
+    const transaction = transactionBuilder.setTimeout(30).build();
 
     // --- PASO 4: Firmar y Enviar a Stellar ---
     transaction.sign(studentKeys);
@@ -131,10 +148,19 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error("ERROR EN PROCESO DE CANJE:", error.message);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
+    // Si el error viene de Horizon, tendrá detalles extra
+    const details = error.response?.data?.extras?.result_codes 
+        ? JSON.stringify(error.response.data.extras.result_codes) 
+        : "Sin detalles extra";
+        
+    console.error(`❌ Error en Stellar: ${error.message} - Detalles: ${details}`);
+    
+    return new Response(JSON.stringify({ 
+        error: error.message, 
+        details: details 
+    }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 400 
+    });
   }
 })

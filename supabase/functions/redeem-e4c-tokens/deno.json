@@ -1,7 +1,10 @@
 {
   "imports": {
-    "https://esm.sh/@supabase/supabase-js@2.39.7": "https://esm.sh/@supabase/supabase-js@2.39.7",
+    "https://esm.sh/@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js",
     "https://deno.land/std@0.203.0/uuid/mod.ts": "https://deno.land/std@0.203.0/uuid/mod.ts",
-    "stellar-base": "https://esm.sh/stellar-base@12.1.0?bundle&target=browser"
+    "https://esm.sh/stellar-sdk": "https://esm.sh/stellar-sdk"
+  },
+  "compilerOptions": {
+    "noImplicitAny": false
   }
 }

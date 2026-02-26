@@ -63,26 +63,107 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
   });
 
   const handleAssign = async () => {
-    if (selectedStudents.size > 0 && selectedTask) {
-      try {
-        const assignments = Array.from(selectedStudents).map(studentId => ({
-          student_id: studentId,
-          task_id: selectedTask,
-          status: 'assigned',
-          assigned_date: new Date().toISOString(),
-        }));
+    if (selectedStudents.size === 0 || !selectedTask) {
+      setError("Por favor, selecciona al menos un alumno y una tarea.");
+      return;
+    }
+    setError(null);
+    setShowSuccess(false);
 
-        const { error: insError } = await supabase.from('student_tasks').insert(assignments);
-        if (insError) throw insError;
+    let successfullyAssignedStudents: string[] = [];
+    let alreadyAssignedStudents: string[] = [];
 
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          setSelectedStudents(new Set());
-        }, 2000);
-      } catch (err: any) {
-        alert("Error al asignar: " + err.message);
+    const assignmentsToAttempt = Array.from(selectedStudents).map(studentId => ({
+      student_id: studentId,
+      task_id: selectedTask,
+      status: 'assigned',
+      assigned_date: new Date().toISOString(),
+    }));
+
+    try {
+      // Attempt to insert all selected assignments
+      const { data: insertedData, error: insError } = await supabase
+        .from('student_tasks')
+        .insert(assignmentsToAttempt)
+        .select('student_id'); // Select student_id of successfully inserted rows
+
+      if (insError) {
+        if (insError.code === '23505') { // PostgreSQL unique_violation error code
+          // This is a unique constraint violation, meaning some tasks were already assigned.
+          // We need to figure out which ones failed and which (if any) succeeded.
+          // Supabase insert with 'onConflict' or 'ignoreDuplicates' would be ideal,
+          // but current version of supabase-js insert doesn't support returning affected rows easily for partial failures.
+          // So, we'll re-query to find out which ones already existed.
+          
+          const { data: existingAssignments, error: queryError } = await supabase
+            .from('student_tasks')
+            .select('student_id')
+            .eq('task_id', selectedTask)
+            .in('student_id', Array.from(selectedStudents));
+
+          if (queryError) {
+            console.error("Error al verificar asignaciones existentes después de un conflicto:", queryError);
+            setError("Error interno al verificar asignaciones existentes.");
+            return;
+          }
+          
+          const existingStudentIdsSet = new Set(existingAssignments.map(sa => sa.student_id));
+          
+          alreadyAssignedStudents = Array.from(selectedStudents).filter(studentId => existingStudentIdsSet.has(studentId));
+          successfullyAssignedStudents = Array.from(selectedStudents).filter(studentId => !existingStudentIdsSet.has(studentId));
+
+        } else {
+          // Other types of insertion errors
+          console.error("Error al asignar tarea:", insError);
+          setError("Error al asignar tarea: " + insError.message);
+          return;
+        }
+      } else {
+        // All assignments were successful
+        successfullyAssignedStudents = insertedData.map(d => d.student_id);
       }
+
+      let feedbackMessage = '';
+      if (successfullyAssignedStudents.length > 0 && alreadyAssignedStudents.length === 0) {
+        feedbackMessage = `¡Tarea asignada a ${successfullyAssignedStudents.length} alumno(s) con éxito!`;
+      } else if (successfullyAssignedStudents.length > 0 && alreadyAssignedStudents.length > 0) {
+        feedbackMessage = `Tarea asignada a ${successfullyAssignedStudents.length} alumno(s). ${alreadyAssignedStudents.length} alumno(s) ya tenían esta tarea asignada.`;
+      } else if (successfullyAssignedStudents.length === 0 && alreadyAssignedStudents.length > 0) {
+        feedbackMessage = `${alreadyAssignedStudents.length} alumno(s) ya tenían esta tarea asignada.`;
+      } else {
+        feedbackMessage = "No se realizaron nuevas asignaciones.";
+      }
+      
+      setError(null); // Clear previous error
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setSelectedStudents(new Set());
+      }, 3000); // Show success message a bit longer
+
+      // Use a custom toast or notification instead of alert for better UX
+      // For now, let's update the error state to display the feedback message in the UI's error component.
+      // If no real error, we just show success.
+      if (alreadyAssignedStudents.length > 0) {
+        setError(feedbackMessage); // Display feedback for partially failed/already assigned
+      } else {
+        setError(null); // Ensure error is clear for full success
+      }
+
+    } catch (err: any) {
+      console.error("Error al asignar tarea:", err);
+      setError("Error al asignar tarea: " + err.message);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredStudentIds = new Set(filteredStudents.map(s => s.id));
+    if (selectedStudents.size === filteredStudents.length && filteredStudents.length > 0) {
+      // All selected, deselect all
+      setSelectedStudents(new Set());
+    } else {
+      // Not all selected, select all
+      setSelectedStudents(allFilteredStudentIds);
     }
   };
 
@@ -175,9 +256,19 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
             <h3 className="font-bold text-gray-700">Alumnos en {teacherData?.escuela}</h3>
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold">
-              {filteredStudents.length} encontrados
-            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="selectAllStudents"
+                className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
+                onChange={handleSelectAll}
+              />
+              <label htmlFor="selectAllStudents" className="text-sm font-medium text-gray-700">Seleccionar Todos</label>
+              <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold">
+                {filteredStudents.length} encontrados
+              </span>
+            </div>
           </div>
           <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
             {filteredStudents.length === 0 ? (
@@ -274,6 +365,13 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
                 </div>
         
       </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      )}
 
       {showSuccess && (
         <div className="fixed bottom-8 right-8 bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl animate-bounce font-bold">

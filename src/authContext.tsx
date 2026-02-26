@@ -31,8 +31,8 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: () => Promise<{ user: User | null; session: Session | null }>;
-  signUp: () => Promise<{ user: User | null; session: Session | null }>;
+  signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null }>;
+  signUp: (email: string, password: string) => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
   switchUserRole: (role: UserRole, id?: string) => Promise<void>; // Make it async here too
   allStudents: Student[];
@@ -55,12 +55,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [allAdmins, setAllAdmins] = useState<Admin[]>([]);
   const [allValidators, setAllValidators] = useState<Validator[]>([]);
 
-  const signIn = async () => {
-    return Promise.resolve({ user, session });
+  const [registeredEmails, setRegisteredEmails] = useState<Set<string>>(new Set(['test@example.com', 'admin@example.com']));
+
+  const signIn = async (email: string, password: string) => {
+    // Basic mock sign-in logic
+    if (registeredEmails.has(email) && password === 'password') { // Assuming a default password for mock
+      const mockUser: User = {
+        id: 'mock-user-' + email,
+        app_metadata: {},
+        user_metadata: { email, name: email.split('@')[0], role: 'student' as UserRole }, // Default to student role for mock
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      };
+      const mockSession: Session = {
+        access_token: 'mock-access-token-' + email,
+        refresh_token: 'mock-refresh-token',
+        user: mockUser,
+        token_type: 'Bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      };
+      setUser(mockUser);
+      setSession(mockSession);
+      return Promise.resolve({ user: mockUser, session: mockSession });
+    } else {
+      throw new Error("Credenciales inválidas.");
+    }
   };
 
-  const signUp = async () => {
-    return Promise.resolve({ user, session });
+  const signUp = async (email: string, password: string) => {
+    // Simulate "email already exists"
+    if (registeredEmails.has(email)) {
+      throw new Error("El correo electrónico ya está registrado.");
+    }
+    
+    // Basic mock sign-up logic
+    const mockUser: User = {
+      id: 'mock-user-' + email,
+      app_metadata: {},
+      user_metadata: { email, name: email.split('@')[0], role: 'student' as UserRole },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    };
+    const mockSession: Session = {
+      access_token: 'mock-access-token-' + email,
+      refresh_token: 'mock-refresh-token',
+      user: mockUser,
+      token_type: 'Bearer',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    };
+    
+    setRegisteredEmails(prev => new Set(prev).add(email)); // Add new email to mock registered
+    setUser(mockUser);
+    setSession(mockSession);
+    return Promise.resolve({ user: mockUser, session: mockSession });
   };
 
   const signOut = async () => {

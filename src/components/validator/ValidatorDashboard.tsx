@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CheckCircle, AlertCircle, Clock, Award, Fingerprint, Search, Filter, Hourglass, Users } from 'lucide-react';
-import { ValidationCenter } from './ValidationCenter';
+import { CheckCircle, AlertCircle, Clock, Award, Fingerprint, Search, Filter, Hourglass, Users, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../authContext';
 import type { Validator, Student, Task, StudentTask } from '../../types';
@@ -8,11 +7,9 @@ import type { Validator, Student, Task, StudentTask } from '../../types';
 interface ValidatorDashboardProps {
   validatorId?: string;
   studentTasks: StudentTask[];
-  onApproveRequest: (requestId: string) => void;
-  onRejectRequest: (requestId: string, reason: string) => void;
 }
 
-export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks, onApproveRequest, onRejectRequest }: ValidatorDashboardProps) {
+export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks }: ValidatorDashboardProps) {
   const { allValidators } = useAuth();
   const [validatorData, setValidatorData] = useState<Validator | null>(null);
   const [tasksCache, setTasksCache] = useState<Map<string, Task>>(new Map());
@@ -22,6 +19,12 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks,
   // Estados de Filtro
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEscuela, setFilterEscuela] = useState('');
+
+  // Estados para el modal de rechazo
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [taskToReject, setTaskToReject] = useState<StudentTask | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
 
   useEffect(() => {
     const fetchContext = async () => {
@@ -100,8 +103,6 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks,
 
       alert(`¡Validación Exitosa! Se han enviado ${item.task.points} E4C a ${item.student.name}.`);
       
-      // El refresco de los datos se hace mediante el useEffect del App.tsx que observa student_tasks
-      // pero para feedback inmediato podemos forzar un refresh manual si es necesario.
       window.location.reload(); 
     } catch (err: any) {
       console.error("Error en validación:", err);
@@ -111,6 +112,36 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks,
     }
   };
 
+  const handleRejectTask = async () => {
+    if (!taskToReject || !rejectionReason.trim()) {
+      alert("Por favor, proporciona un motivo de rechazo.");
+      return;
+    }
+
+    setIsRejecting(true);
+    try {
+      const { error } = await supabase
+        .from('student_tasks')
+        .update({ status: 'validator_rejected', rejection_reason: rejectionReason.trim() })
+        .eq('id', taskToReject.id);
+
+      if (error) throw error;
+
+      alert(`Tarea de ${taskToReject.student?.name || 'Alumno Desconocido'} rechazada con éxito.`);
+      
+      window.location.reload(); 
+    } catch (err: any) {
+      console.error("Error al rechazar tarea:", err);
+      alert(`Fallo al rechazar la tarea: ${err.message}`);
+    } finally {
+      setIsRejecting(false);
+      setIsRejectModalOpen(false);
+      setTaskToReject(null);
+      setRejectionReason('');
+    }
+  };
+  
+  // Early returns for loading/empty states
   if (allValidators.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
@@ -192,26 +223,68 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks,
                   </p>
                   <p className="text-xs text-gray-500">Materia: {item.task?.subject} • <span className="font-bold text-indigo-600">Recompensa: {item.task?.points} E4C</span></p>
                 </div>
-                <button 
-                  onClick={() => handleValidateAndPay(item)}
-                  disabled={!!isValidating}
-                  className={`px-6 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 ${
-                    isValidating === item.id 
-                      ? 'bg-green-400 text-white cursor-not-allowed' 
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {isValidating === item.id ? (
-                    <><Hourglass className="animate-spin" size={16} /> Procesando...</>
-                  ) : (
-                    'Validar y Pagar'
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleValidateAndPay(item)}
+                    disabled={!!isValidating}
+                    className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 ${
+                      isValidating === item.id 
+                        ? 'bg-green-400 text-white cursor-not-allowed' 
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {isValidating === item.id ? (
+                      <><Hourglass className="animate-spin" size={16} /> Procesando...</>
+                    ) : (
+                      'Aprobar y Pagar'
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { setTaskToReject(item); setIsRejectModalOpen(true); }}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 shadow-md transition-all active:scale-95 flex items-center gap-2"
+                  >
+                    <XCircle size={16} /> Rechazar
+                  </button>
+                </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Modal de Rechazo */}
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Rechazar Tarea de {taskToReject?.student?.name || 'Alumno Desconocido'}</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Por favor, explica claramente el motivo del rechazo para que el alumno y el docente puedan entender y corregir.
+            </p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Motivo del rechazo..."
+              rows={4}
+              className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            ></textarea>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsRejectModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRejectTask}
+                disabled={isRejecting || !rejectionReason.trim()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                {isRejecting ? <><Hourglass className="animate-spin" size={16} /> Rechazando...</> : 'Confirmar Rechazo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

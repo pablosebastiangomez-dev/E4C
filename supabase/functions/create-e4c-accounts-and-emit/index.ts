@@ -79,6 +79,56 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({ tx: txTrust.toXDR() }).toString()
     });
 
+    // --- PASO 4.1: ESTABLECER TRUSTLINE PARA LA CUENTA DE LA BÓVEDA (ESCROW) ---
+    // La cuenta de la bóveda también debe confiar en el token E4C para poder recibirlo.
+    if (!E4C_ESCROW_ACCOUNT_PUBLIC_KEY) {
+      throw new Error("E4C_ESCROW_ACCOUNT_PUBLIC_KEY no está configurada.");
+    }
+    
+    // Obtener la clave secreta de la bóveda desde la base de datos
+    const { data: escrowWallet, error: escrowWalletError } = await supabaseClient
+      .from('stellar_wallets')
+      .select('secret_key, public_key')
+      .eq('public_key', E4C_ESCROW_ACCOUNT_PUBLIC_KEY)
+      .single();
+
+    if (escrowWalletError || !escrowWallet?.secret_key) {
+      throw new Error(`No se encontró la clave secreta para la bóveda ${E4C_ESCROW_ACCOUNT_PUBLIC_KEY}.`);
+    }
+
+    const escrowKeys = Keypair.fromSecret(escrowWallet.secret_key);
+
+    const escrowRes = await fetch(`${HORIZON_URL}/accounts/${escrowKeys.publicKey()}`);
+    if (!escrowRes.ok) {
+        // Si la cuenta de la bóveda no existe, intentar crearla (similar a friendbot para testnet)
+        // Esto solo es válido para testnet. En prod, las cuentas deben estar pre-financiadas.
+        console.warn(`La cuenta de la bóveda ${escrowKeys.publicKey()} no existe. Intentando fondear con Friendbot (solo Testnet).`);
+        await fetch(`https://friendbot.stellar.org?addr=${escrowKeys.publicKey()}`);
+        await new Promise(r => setTimeout(r, 6000)); // Esperar por friendbot
+        const retryEscrowRes = await fetch(`${HORIZON_URL}/accounts/${escrowKeys.publicKey()}`);
+        if (!retryEscrowRes.ok) {
+            throw new Error(`Fallo al activar o cargar la cuenta de la bóveda ${escrowKeys.publicKey()}.`);
+        }
+    }
+    const escrowData = await (await fetch(`${HORIZON_URL}/accounts/${escrowKeys.publicKey()}`)).json(); // Fetch again if it was created
+    const escrowAccount = new Account(escrowKeys.publicKey(), escrowData.sequence);
+
+    const txEscrowTrust = new TransactionBuilder(escrowAccount, { 
+      fee: '1000', 
+      networkPassphrase: Networks.TESTNET 
+    })
+      .addOperation(Operation.changeTrust({ asset: E4C_ASSET }))
+      .setTimeout(30)
+      .build();
+
+    txEscrowTrust.sign(escrowKeys);
+    await fetch(`${HORIZON_URL}/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ tx: txEscrowTrust.toXDR() }).toString()
+    });
+    console.log("Trustline establecido para la cuenta de la bóveda E4C.");
+
     // --- PASO 5: EMISIÓN INICIAL (MINTING) ---
     // El Issuer crea tokens de la "nada" al enviarlos a una cuenta que tiene un Trustline.
     // Enviamos 1,000,000 de E4C al Distribuidor.
