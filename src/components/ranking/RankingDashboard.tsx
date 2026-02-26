@@ -109,7 +109,7 @@ export function RankingDashboard() { // Removed students prop
 
       <div className="bg-white rounded-2xl border border-gray-200 p-6 min-h-[400px] shadow-sm">
         {activeView === 'tokens' && <LeaderboardTokens students={allStudents} />}
-        {activeView === 'nfts' && <LeaderboardNFTs nftRequests={[]} />}
+        {activeView === 'nfts' && <LeaderboardNFTs nftRequests={[]} students={allStudents} />}
         {activeView === 'stats' && <GeneralStats students={allStudents} studentTasks={studentTasks} tasks={tasks} />}
       </div>
     </div>

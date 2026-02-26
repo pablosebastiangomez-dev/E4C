@@ -13,6 +13,7 @@ export interface Student {
   curso?: string;
   division?: string;
   escuela?: string;
+  alias?: string; // New: Optional alias for public display
 }
 
 export interface Teacher {

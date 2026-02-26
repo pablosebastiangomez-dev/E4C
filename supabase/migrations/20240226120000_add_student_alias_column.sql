@@ -1,0 +1,2 @@
+ALTER TABLE public.students
+ADD COLUMN alias TEXT UNIQUE;

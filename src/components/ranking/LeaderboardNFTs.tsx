@@ -3,11 +3,13 @@ import type { NFTRequest } from '../../types';
 
 interface LeaderboardNFTsProps {
   nftRequests: NFTRequest[];
+  students: Student[]; // New prop
 }
 
 interface StudentNFTCount {
   studentId: string;
   studentName: string;
+  studentAlias: string; // New field to hold the alias
   nftCount: number;
   nfts: NFTRequest[];
 }
@@ -19,13 +21,17 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
   
   nftRequests.filter(req => req.status === 'approved').forEach(nft => {
     const existing = studentNFTMap.get(nft.studentId);
+    const studentData = students.find(s => s.id === nft.studentId); // Find the corresponding student
+    const displayAlias = studentData?.alias || 'Estudiante E4C'; // Use alias if exists, else fall back to generic alias
+
     if (existing) {
       existing.nftCount++;
       existing.nfts.push(nft);
     } else {
       studentNFTMap.set(nft.studentId, {
         studentId: nft.studentId,
-        studentName: nft.studentName,
+        studentName: nft.studentName, // Keep original name if needed elsewhere
+        studentAlias: displayAlias, // Store the chosen display name
         nftCount: 1,
         nfts: [nft],
       });
@@ -116,7 +122,7 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
                 <p className="text-white">#{index + 1}</p>
               </div>
               <div className="p-6">
-                <p className="text-gray-900 mb-3">{student.studentName}</p>
+                <p className="text-gray-900 mb-3">{student.studentAlias}</p>
                 <div className="bg-white rounded-lg p-3 border border-gray-200 mb-3">
                   <p className="text-gray-600 text-sm">NFTs Obtenidos</p>
                   <p className="text-purple-600">{student.nftCount}</p>
@@ -156,7 +162,7 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
                       <span className="text-gray-700">{position + 1}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900 mb-2">{student.studentName}</p>
+                      <p className="text-gray-900 mb-2">{student.studentAlias}</p>
                       <div className="flex gap-1">
                         {student.nfts.slice(0, 5).map(nft => (
                           <div key={nft.id} className="text-lg" title={nft.achievementName}>

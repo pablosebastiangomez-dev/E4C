@@ -1,8 +1,8 @@
-# Edu-Chain App
+# E4C App
 
 ## Descripción
 
-Edu-Chain es una plataforma educativa innovadora que integra la tecnología blockchain Stellar para fomentar la participación estudiantil a través de un sistema de recompensas basado en tokens (E4C) y NFTs. Permite a docentes asignar tareas, a validadores aprobar el rendimiento, y a estudiantes canjear sus tokens en un marketplace.
+E4C es una plataforma educativa innovadora que integra la tecnología blockchain Stellar para fomentar la participación estudiantil a través de un sistema de recompensas basado en tokens (E4C) y NFTs. Actualmente, cuenta con un marketplace completamente funcional donde los estudiantes pueden canjear sus tokens y una lógica funcional completa que soporta la asignación, validación y distribución de recompensas. Permite a docentes asignar tareas, a validadores aprobar el rendimiento, y a estudiantes canjear sus tokens en el marketplace.
 
 ## Guía de Instalación
 
@@ -87,16 +87,16 @@ La aplicación se abrirá en tu navegador en `http://localhost:5173` (o un puert
 
 ## Uso
 
-Edu-Chain ofrece diferentes paneles para cada rol de usuario:
+E4C ofrece diferentes paneles para cada rol de usuario, facilitando un ciclo completo de gestión educativa y recompensas blockchain:
 
-*   **Administrador:** Accede al `AdminDashboard` para gestionar usuarios (estudiantes, docentes, validadores), configurar las cuentas Stellar (Emisor, Distribuidor, Bóveda de Canje), emitir tokens E4C y monitorear la actividad general de la plataforma.
-*   **Docente:** Utiliza el `TeacherDashboard` para asignar tareas a los estudiantes, revisar sus entregas y proponer recompensas en forma de NFTs.
-*   **Validador:** En el `ValidatorDashboard`, los validadores aprueban el cumplimiento técnico de las tareas entregadas por los estudiantes. Al aprobar, se dispara la transferencia automática de tokens E4C a la billetera del estudiante.
-*   **Estudiante:** Desde su `StudentDashboard`, los estudiantes pueden ver las tareas asignadas, entregar su trabajo, revisar su balance de tokens E4C y NFTs, y canjear sus tokens por recompensas en el `Marketplace`.
+*   **Administrador:** Accede al `AdminDashboard` para gestionar usuarios (estudiantes, docentes, validadores), configurar las cuentas Stellar necesarias (Emisor, Distribuidor, Bóveda de Canje/Redención), emitir y canjear tokens E4C, y monitorear la actividad general de la plataforma. Este rol es clave para la configuración inicial y el mantenimiento del ecosistema blockchain.
+*   **Docente:** Utiliza el `TeacherDashboard` para asignar tareas a los estudiantes, revisar sus entregas y proponer recompensas en forma de tokens E4C y NFTs.
+*   **Validador:** En el `ValidatorDashboard`, los validadores aprueban el cumplimiento técnico de las tareas entregadas por los estudiantes. Al aprobar una tarea, se dispara automáticamente la transferencia de tokens E4C desde la cuenta distribuidora al monedero del estudiante, utilizando la `Edge Function 'send-e4c-tokens'` para asegurar la transacción en la blockchain Stellar.
+*   **Estudiante:** Desde su `StudentDashboard`, los estudiantes pueden ver las tareas asignadas, entregar su trabajo, revisar su balance de tokens E4C y NFTs. Además, tienen acceso a un `Marketplace` donde pueden canjear sus tokens E4C por NFTs únicos u otras recompensas. También pueden activar su Trustline con E4C directamente desde su dashboard para recibir tokens.
 
 ## Stack Tecnológico
 
-El proyecto Edu-Chain está construido con las siguientes tecnologías:
+El proyecto E4C está construido con las siguientes tecnologías:
 
 *   **Frontend:**
     *   [React](https://react.dev/) (con TypeScript)

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Coins, Award, ShoppingBag, Trophy, ClipboardList, Users, AlertCircle, Hourglass } from 'lucide-react';
+import { Coins, Award, ShoppingBag, Trophy, ClipboardList, Users, AlertCircle, Hourglass, User } from 'lucide-react';
 import { MyTokens } from './MyTokens';
 import { MyNFTs } from './MyNFTs';
 import { Marketplace } from './Marketplace';
 import { MyTasks } from './MyTasks';
+import { StudentProfileSettings } from './StudentProfileSettings';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../authContext';
 import type { Student, NFTRequest } from '../../types';
@@ -14,7 +15,7 @@ interface StudentDashboardProps {
   nftRequests?: NFTRequest[];
 }
 
-type StudentView = 'tokens' | 'nfts' | 'marketplace' | 'my-tasks';
+type StudentView = 'tokens' | 'nfts' | 'marketplace' | 'my-tasks' | 'profile-settings';
 
 export function StudentDashboard({ studentId, nftRequests: propNftRequests }: StudentDashboardProps) {
   const { allStudents, switchUserRole } = useAuth(); // Obtener de AuthContext
@@ -96,6 +97,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
     { id: 'tokens' as StudentView, label: 'Mis Tokens', icon: Coins, color: 'indigo' },
     { id: 'nfts' as StudentView, label: 'Mis Logros NFT', icon: Trophy, color: 'purple' },
     { id: 'marketplace' as StudentView, label: 'Marketplace', icon: ShoppingBag, color: 'pink' },
+    { id: 'profile-settings' as StudentView, label: 'Configuración de Perfil', icon: User, color: 'gray' }, // New tab
   ];
 
   if (allStudents.length === 0) {
@@ -196,6 +198,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
         {activeView === 'nfts' && <MyNFTs nfts={[]} />}
         {activeView === 'marketplace' && <Marketplace studentId={studentId} />}
         {activeView === 'my-tasks' && <MyTasks studentId={studentId} />}
+        {activeView === 'profile-settings' && <StudentProfileSettings studentId={studentId} />} {/* New render */}
       </div>
     </div>
   );

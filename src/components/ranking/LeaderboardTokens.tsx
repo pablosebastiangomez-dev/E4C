@@ -68,7 +68,7 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
               <p className="text-white">#{index + 1}</p>
             </div>
             <div className="p-6">
-              <p className="text-gray-900 mb-1">{student.name}</p>
+              <p className="text-gray-900 mb-1">{student.alias || 'Estudiante E4C'}</p>
               <p className="text-gray-600 text-sm mb-3">{student.grade}</p>
               <div className="bg-white rounded-lg p-3 border border-gray-200">
                 <p className="text-gray-600 text-sm">Tokens</p>
@@ -98,8 +98,8 @@ export function LeaderboardTokens({ students }: LeaderboardTokensProps) {
                       <span className="text-gray-700">{position + 1}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900">{student.name}</p>
-                      <p className="text-sm text-gray-600">{student.grade} • {student.email}</p>
+                      <p className="text-gray-900">{student.alias || 'Estudiante E4C'}</p>
+                      <p className="text-sm text-gray-600">{student.grade}</p>
                     </div>
                   </div>
                   <div className="text-right">
