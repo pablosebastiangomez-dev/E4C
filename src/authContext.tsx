@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     // Basic mock sign-in logic
-    if (registeredEmails.has(email) && password === 'password') { // Assuming a default password for mock
+    if (registeredEmails.has(email) && password === 'password') { // Asumiendo una contraseña por defecto para la simulación
       const mockUser: User = {
         id: 'mock-user-' + email,
         app_metadata: {},
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (role === 'admin') {
       let admin = null;
       if (id) {
-        // If an ID is explicitly provided, fetch this admin directly from the DB for freshest data
+        // Si se proporciona un ID explícito, se busca este administrador directamente en la base de datos para obtener los datos más recientes.
         const { data: fetchedAdmin, error: fetchError } = await supabase
           .from('admins')
           .select('*')

@@ -20,10 +20,10 @@ serve(async (req) => {
   try {
     // --- MVP Bypass: Authentication and RBAC (REMOVE FOR PRODUCTION) ---
     // Since user login is not implemented for the MVP, we are temporarily bypassing all auth and RBAC.
-    // This is INSECURE and must be fully re-enabled and properly implemented for production environments.
+    // Esto es INSEGURO y debe ser completamente reactivado e implementado correctamente para entornos de producción.
     console.warn('ADVERTENCIA: Autenticación y RBAC DESACTIVADOS en trigger-wallet-creation para MVP. ESTO ES INSEGURO Y DEBE SER REEMPLAZADO PARA PRODUCCIÓN.');
     // const authHeader = req.headers.get('Authorization');
-    // if (!authHeader) {
+    // Si no hay encabezado de autenticación.
     //   return new Response(JSON.stringify({ error: "Authorization header missing." }), {
     //     status: 401,
     //     headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -39,7 +39,7 @@ serve(async (req) => {
     // // Obtener el usuario autenticado desde el Token (JWT)
     // const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-    // if (authError || !user) {
+    // Si hay error de autenticación o el usuario no existe.
     //   return new Response(JSON.stringify({ error: "No autorizado" }), {
     //     status: 401,
     //     headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -59,7 +59,7 @@ serve(async (req) => {
     //   .eq('id', user.id)
     //   .single();
 
-    // if (profileError || profile?.role !== 'admin') {
+    // Si hay error al obtener el perfil o el rol del perfil no es 'admin'.
     //   console.error("Profile or Role error:", profileError);
     //   return new Response(
     //     JSON.stringify({ error: "Acceso denegado: Se requieren permisos de administrador" }),
@@ -78,8 +78,8 @@ serve(async (req) => {
     }
 
     // Call the internal create-stellar-student-wallet function
-    // For MVP, we're assuming this call will proceed without explicit user auth checks
-    // as it's triggered internally from this bypassed function.
+    // Para el MVP, asumimos que esta llamada procederá sin verificaciones explícitas de autenticación de usuario.
+    // ya que se activa internamente desde esta función que omite verificaciones.
     const createWalletResponse = await fetch(
       `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-stellar-student-wallet`,
       {

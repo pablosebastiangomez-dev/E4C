@@ -33,7 +33,7 @@ export function EscrowManagement({ adminId }: EscrowManagementProps) {
         setEscrowResult({
           publicKey: existingEscrow[0].public_key,
           secretKey: existingEscrow[0].secret_key,
-          stellarNetwork: 'TESTNET', // Assuming TESTNET for now, can be fetched from env in future
+          stellarNetwork: 'TESTNET', // Asumiendo TESTNET por ahora; se puede obtener del entorno en el futuro
           message: "La cuenta de bóveda (escrow) ya existe. Solo se puede crear una vez."
         });
       }

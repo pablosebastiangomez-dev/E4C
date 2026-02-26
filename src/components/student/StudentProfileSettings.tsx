@@ -71,8 +71,8 @@ export function StudentProfileSettings({ studentId }: StudentProfileSettingsProp
         setStudent(data[0] as Student); // Update local student state
         setSuccess('¡Alias guardado con éxito!');
         // Optionally, trigger a refresh of student data in authContext or parent
-        // if allStudents list needs to reflect the new alias immediately.
-        // For now, assume it's primarily for display and will be re-fetched on next load.
+        // si la lista de allStudents necesita reflejar el nuevo alias inmediatamente.
+        // Por ahora, se asume que es principalmente para visualización y se volverá a cargar en la próxima carga.
       }
     } catch (err: any) {
       setError(err.message);

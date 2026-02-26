@@ -89,7 +89,7 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
 
       if (insError) {
         if (insError.code === '23505') { // PostgreSQL unique_violation error code
-          // This is a unique constraint violation, meaning some tasks were already assigned.
+          // Esto es una violación de la restricción única, lo que significa que algunas tareas ya estaban asignadas.
           // We need to figure out which ones failed and which (if any) succeeded.
           // Supabase insert with 'onConflict' or 'ignoreDuplicates' would be ideal,
           // but current version of supabase-js insert doesn't support returning affected rows easily for partial failures.
@@ -142,8 +142,8 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
       }, 3000); // Show success message a bit longer
 
       // Use a custom toast or notification instead of alert for better UX
-      // For now, let's update the error state to display the feedback message in the UI's error component.
-      // If no real error, we just show success.
+      // Por ahora, actualicemos el estado de error para mostrar el mensaje de retroalimentación en el componente de error de la UI.
+      // Si no hay un error real, simplemente mostramos el éxito.
       if (alreadyAssignedStudents.length > 0) {
         setError(feedbackMessage); // Display feedback for partially failed/already assigned
       } else {
