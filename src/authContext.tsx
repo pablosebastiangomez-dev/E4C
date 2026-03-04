@@ -8,15 +8,16 @@ interface User {
   app_metadata: {
     provider?: string;
   };
-      user_metadata: {
-          role?: UserRole;
-          name?: string;
-          email?: string;
-          [key: string]: unknown;
-      };
-      aud: string;
-      created_at: string;
-      [key: string]: unknown;}
+  user_metadata: {
+    role?: UserRole;
+    name?: string;
+    email?: string;
+    [key: string]: unknown;
+  };
+  aud: string;
+  created_at: string;
+  [key: string]: unknown;
+}
 
 interface Session {
   access_token: string;
@@ -88,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (registeredEmails.has(email)) {
       throw new Error("El correo electrónico ya está registrado.");
     }
-    
+
     // Basic mock sign-up logic
     const mockUser: User = {
       id: 'mock-user-' + email,
@@ -105,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expires_in: 3600,
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     };
-    
+
     setRegisteredEmails(prev => new Set(prev).add(email)); // Add new email to mock registered
     setUser(mockUser);
     setSession(mockSession);
@@ -136,14 +137,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setAllTeachers(teachersData as Teacher[]);
     }
-    
+
     const { data: adminsData, error: adminsError } = await supabase.from('admins').select('*');
     if (adminsError) {
       console.error('Error fetching admins:', adminsError);
     } else {
       setAllAdmins(adminsData as Admin[]);
     }
-    
+
     const { data: validatorsData, error: validatorsError } = await supabase.from('validators').select('*');
     if (validatorsError) {
       console.error('Error fetching validators:', validatorsError);
@@ -156,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchUserRole = useCallback(async (role: UserRole, id?: string) => { // Make it async and useCallback
     setCurrentRole(role);
     let selectedUser: User | null = null;
-    const userMetadata: { role: UserRole; [key: string]: unknown } = { role };
+    const userMetadata: { role: UserRole;[key: string]: unknown } = { role };
 
     if (role === 'student') {
       const studentIdToUse = id || (allStudents.length > 0 ? allStudents[0].id : undefined);
@@ -264,33 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initialLoad = async () => {
       setLoading(true); // Solo activamos el loading real aquí
-      const { adminsData } = await refreshUsers();
-      
-      // Priorizar la configuración de un usuario administrador
-      if (adminsData.length > 0) {
-        const initialAdmin = adminsData[0];
-        const initialUser = {
-          id: initialAdmin.id,
-          app_metadata: {},
-          user_metadata: { role: 'admin' as UserRole, name: initialAdmin.name, email: initialAdmin.email },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        };
-        setUser(initialUser);
-      } else {
-        // Si no existen administradores, crear un usuario administrador de prueba
-        const mockAdminUser = {
-          id: `mock-admin-id-${Date.now()}`,
-          app_metadata: {},
-          user_metadata: { role: 'admin' as UserRole, name: "Admin (Mock)", email: "mock@admin.com" }, // Corregido: 'userMetadata' no estaba definido en este alcance.
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        };
-        setUser(mockAdminUser);
-      }
       setLoading(false); // Terminamos el loading inicial
     };
-    
+
     initialLoad();
   }, [refreshUsers]);
 
