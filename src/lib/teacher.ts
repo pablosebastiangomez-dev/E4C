@@ -10,7 +10,7 @@ export const createTeacher = async (teacherData: {
   stellar_public_key?: string; // Añadir stellar_public_key opcional
 }) : Promise<Teacher> => {
   // **Gestión de Clave Pública Stellar para Docentes (Uso Futuro):**
-  // Actualmente, los docentes no interactúan directamente con la red Stellar para crear wallets
+  // Actualmente, los docentes no interactúan directamente con la red Stellar para crear billeteras
   // o tokens de la misma manera que los administradores o estudiantes.
   // Sin embargo, se incluye un campo `stellar_public_key` opcional para permitir una futura integración.
   // Esto podría usarse para:

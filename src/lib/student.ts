@@ -12,7 +12,7 @@ export const createStudent = async (studentData: {
   // **Gestión de Cuentas Stellar en la Base de Datos:**
   // Este método `createStudent` se encarga de insertar un nuevo estudiante en la tabla `students` de Supabase.
   // Es importante destacar que el `stellar_public_key` del estudiante, generado previamente en el frontend
-  // (por ejemplo, en StudentManagement.tsx), se almacena aquí. Esta clave pública es la dirección de su wallet Stellar.
+  // (por ejemplo, en StudentManagement.tsx), se almacena aquí. Esta clave pública es la dirección de su billetera Stellar.
   // La clave secreta NUNCA debe almacenarse en la base de datos ni exponerse en el frontend.
 
   // 1. Verificar si el estudiante ya existe antes de intentar insertar

@@ -34,7 +34,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null }>;
   signUp: (email: string, password: string) => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
-  switchUserRole: (role: UserRole, id?: string) => Promise<void>; // Make it async here too
+  switchUserRole: (role: UserRole, id?: string) => Promise<void>; // Hacerlo asíncrono aquí también
   allStudents: Student[];
   allTeachers: Teacher[];
   allAdmins: Admin[];
@@ -53,18 +53,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
-  const [allAdmins, setAllAdmins] = useState<Admin[]>([]); // Uncommented and initialized
+  const [allAdmins, setAllAdmins] = useState<Admin[]>([]); // Descomentado e inicializado
   const [allValidators, setAllValidators] = useState<Validator[]>([]);
 
   const [registeredEmails, setRegisteredEmails] = useState<Set<string>>(new Set(['test@example.com', 'admin@example.com']));
 
   const signIn = async (email: string, password: string) => {
-    // Basic mock sign-in logic
+    // Lógica básica de simulación de inicio de sesión
     if (registeredEmails.has(email) && password === 'password') { // Asumiendo una contraseña por defecto para la simulación
       const mockUser: User = {
         id: 'mock-user-' + email,
         app_metadata: {},
-        user_metadata: { email, name: email.split('@')[0], role: 'student' as UserRole }, // Default to student role for mock
+        user_metadata: { email, name: email.split('@')[0], role: 'student' as UserRole }, // Por defecto, rol de estudiante para la simulación
         aud: 'authenticated',
         created_at: new Date().toISOString(),
       };
@@ -85,12 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string) => {
-    // Simulate "email already exists"
+    // Simular "el correo electrónico ya existe"
     if (registeredEmails.has(email)) {
       throw new Error("El correo electrónico ya está registrado.");
     }
     
-    // Basic mock sign-up logic
+    // Lógica básica de simulación de registro
     const mockUser: User = {
       id: 'mock-user-' + email,
       app_metadata: {},
@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     };
     
-    setRegisteredEmails(prev => new Set(prev).add(email)); // Add new email to mock registered
+    setRegisteredEmails(prev => new Set(prev).add(email)); // Añadir nuevo correo electrónico a los registrados de simulación
     setUser(mockUser);
     setSession(mockSession);
     return Promise.resolve({ user: mockUser, session: mockSession });
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { currentStudents, adminsData: adminsData || [], teachersData: teachersData || [], validatorsData: validatorsData || [] };
   }, []);
 
-  const switchUserRole = useCallback(async (role: UserRole, id?: string) => { // Make it async and useCallback
+  const switchUserRole = useCallback(async (role: UserRole, id?: string) => { // Hacerlo asíncrono y useCallback
     setCurrentRole(role);
     let selectedUser: User | null = null;
     const userMetadata: { role: UserRole; [key: string]: unknown } = { role };
@@ -202,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
       }
-    } else if (role === 'admin') { // Added admin role handling
+    } else if (role === 'admin') { // Manejo de rol de administrador añadido
       const adminIdToUse = id || (allAdmins.length > 0 ? allAdmins[0].id : undefined);
       if (adminIdToUse) {
         const admin = allAdmins.find(a => a.id === adminIdToUse);
@@ -226,11 +226,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
     setUser(selectedUser);
-    // After setting selectedUser, also set a mock session
+    // Después de establecer el usuario seleccionado, también se establece una sesión de prueba
     let mockSession: Session | null = null;
     if (selectedUser) {
       mockSession = {
-        access_token: `mock-access-token-${selectedUser.id}-${Date.now()}`, // Unique mock token
+        access_token: `mock-access-token-${selectedUser.id}-${Date.now()}`, // Token de simulación único
         refresh_token: 'mock-refresh-token',
         user: selectedUser,
         token_type: 'Bearer',
@@ -240,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setSession(mockSession); // Después de establecer el usuario seleccionado, también se establece una sesión de prueba.
 
-  }, [allStudents, allTeachers, allAdmins, allValidators, user]); // Added user to dependencies.
+  }, [allStudents, allTeachers, allAdmins, allValidators, user]); // Se añadió el usuario a las dependencias.
 
   useEffect(() => {
     const initialLoad = async () => {
@@ -248,12 +248,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: { session: supabaseSession } } = await supabase.auth.getSession();
       const supabaseAuthUser = supabaseSession?.user || null;
-      setSession(supabaseSession); // Update session state
+      setSession(supabaseSession); // Actualizar el estado de la sesión
 
       const { currentStudents, adminsData, teachersData, validatorsData } = await refreshUsers();
 
       if (supabaseAuthUser) {
-        // If there's an authenticated user from Supabase, try to identify their role
+        // Si hay un usuario autenticado de Supabase, intentar identificar su rol
         const foundAdmin = adminsData.find(admin => admin.id === supabaseAuthUser.id);
         if (foundAdmin) {
           const authenticatedAdminUser: User = {
@@ -266,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authenticatedAdminUser);
           setCurrentRole('admin');
         } else {
-            // Check for other roles if not an admin
+            // Comprobar otros roles si no es administrador
             const foundTeacher = teachersData.find(teacher => teacher.id === supabaseAuthUser.id);
             if (foundTeacher) {
                 const authenticatedTeacherUser: User = {
@@ -303,7 +303,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setUser(authenticatedStudentUser);
                         setCurrentRole('student');
                     } else {
-                        // Default to student role for authenticated users with no matching role in DB tables
+                        // Por defecto, rol de estudiante para usuarios autenticados sin rol coincidente en las tablas de la BD
                         const defaultAuthUser: User = {
                             id: supabaseAuthUser.id,
                             app_metadata: supabaseAuthUser.app_metadata,
@@ -318,7 +318,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }
       } else {
-        // If no authenticated user from Supabase
+        // Si no hay un usuario autenticado de Supabase
         if (currentStudents.length > 0) {
           const firstStudent = currentStudents[0];
           const initialUser: User = {
@@ -331,7 +331,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(initialUser);
           setCurrentRole('student');
         } else {
-          // If no real students and no authenticated user, set a mock student
+          // Si no hay estudiantes reales y ningún usuario autenticado, establecer un estudiante de simulación
           const mockStudentUser = {
             id: `mock-student-id-${Date.now()}`,
             app_metadata: {},

@@ -11,7 +11,7 @@ interface NFTRequestFormProps {
 
 export function NFTRequestForm({ onSubmit }: NFTRequestFormProps) {
   // --- Estados para la Gestión del Formulario ---
-  // `selectedStudent`: ID del estudiante seleccionado en el dropdown.
+  // `selectedStudent`: ID del estudiante seleccionado en el desplegable.
   // `achievementName`: Nombre del logro, puede ser de una plantilla o 'custom'.
   // `customAchievement`: Nombre si el logro es personalizado.
   // `description`: Descripción del logro.
@@ -24,7 +24,7 @@ export function NFTRequestForm({ onSubmit }: NFTRequestFormProps) {
   const [evidence, setEvidence] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // --- Datos Simulados (Mock Data) ---
+  // --- Datos Simulados ---
   // En un entorno real, estos datos vendrían de un backend o de un contexto global.
   const mockStudents: Student[] = [
     { id: 'student-1', name: 'Lionel Messi', email: 'lionel.messi@example.com', tokens: 150, tasksCompleted: 10, nfts: [], grade: '10th', enrollmentDate: '2022-09-01' },
@@ -225,7 +225,7 @@ export function NFTRequestForm({ onSubmit }: NFTRequestFormProps) {
             </p>
           </div>
 
-          {/* Info de Firma */}
+          {/* Información de Firma */}
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <div className="bg-indigo-600 text-white p-2 rounded-full text-sm">

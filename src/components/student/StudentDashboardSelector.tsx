@@ -17,12 +17,12 @@ export function StudentDashboardSelector({
     user?.id && students.some(s => s.id === user.id) ? user.id : null
   );
 
-  // Initialize with first student if none selected and students available
+  // Inicializar con el primer estudiante si no hay ninguno seleccionado y hay estudiantes disponibles
   useEffect(() => {
     if (!selectedStudentId && students.length > 0) {
       const firstStudentId = students[0].id;
       setSelectedStudentId(firstStudentId);
-      // Update user context to match selected student
+      // Actualizar el contexto del usuario para que coincida con el estudiante seleccionado
       switchUserRole('student', firstStudentId);
     }
   }, [students, selectedStudentId, switchUserRole]);
@@ -31,7 +31,7 @@ export function StudentDashboardSelector({
 
   const handleStudentSelect = (studentId: string) => {
     setSelectedStudentId(studentId);
-    // Update user context when selecting a different student
+    // Actualizar el contexto del usuario al seleccionar un estudiante diferente
     switchUserRole('student', studentId);
   };
 

@@ -16,7 +16,7 @@ export function Navigation({ children }: NavigationProps) {
   const currentSelectedTeacherId = userRole === 'teacher' ? user?.id : '';
 
   const roles: { id: UserRole; label: string, icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'admin', label: 'Admin', icon: User }, // Added Admin Role
+    { id: 'admin', label: 'Admin', icon: User }, // Rol de Administrador Añadido
     { id: 'teacher', label: 'Docente', icon: BookText },
     { id: 'validator', label: 'Validador', icon: Fingerprint },
     { id: 'student', label: 'Estudiante', icon: User },
@@ -46,7 +46,7 @@ export function Navigation({ children }: NavigationProps) {
               E4C
             </h1>
             
-            {/* Student Selector */}
+            {/* Selector de Estudiante */}
             {allStudents.length > 0 && userRole === 'student' && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Alumno:</span>
@@ -63,7 +63,7 @@ export function Navigation({ children }: NavigationProps) {
               </div>
             )}
 
-            {/* Teacher Selector */}
+            {/* Selector de Docente */}
             {allTeachers.length > 0 && userRole === 'teacher' && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">Docente:</span>
@@ -80,7 +80,7 @@ export function Navigation({ children }: NavigationProps) {
               </div>
             )}
 
-            {/* Validator Selector */}
+            {/* Selector de Validador */}
             {allValidators && allValidators.length > 0 && userRole === 'validator' && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Validador:</span>

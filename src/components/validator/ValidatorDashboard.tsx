@@ -141,7 +141,7 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks 
     }
   };
   
-  // Early returns for loading/empty states
+  // Retornos tempranos para estados de carga/vacío
   if (allValidators.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">

@@ -70,7 +70,7 @@ export function StudentManagement({ onSelectStudent, students: propsStudents }: 
     if (newStudentName && newStudentEmail && newStudentCurso && newStudentDivision && newStudentEscuela) {
       setIsCreating(true);
       try {
-        // 1. Generar un par de claves Stellar para el nuevo estudiante (wallet)
+        // 1. Generar un par de claves Stellar para el nuevo estudiante (billetera)
         // StellarSdk.Keypair.random() crea un nuevo par de claves criptográficas.
         const pair = StellarSdk.Keypair.random();
         const publicKey = pair.publicKey();
@@ -85,7 +85,7 @@ export function StudentManagement({ onSelectStudent, students: propsStudents }: 
 
         // 3. Crear el registro del estudiante en la base de datos de Supabase
         // Se almacena la clave pública Stellar del estudiante junto con sus otros datos,
-        // vinculando así el perfil del estudiante a su wallet Stellar.
+        // vinculando así el perfil del estudiante a su billetera Stellar.
         const newStudentData = {
           name: newStudentName,
           email: newStudentEmail,

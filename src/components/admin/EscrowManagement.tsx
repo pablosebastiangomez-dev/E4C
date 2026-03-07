@@ -20,7 +20,7 @@ export function EscrowManagement({ adminId }: EscrowManagementProps) {
   const [showEscrowSecret, setShowEscrowSecret] = useState(false);
   const [copiedKey, setCopiedKey] = useState<boolean>(false);
 
-  // Check if escrow account already exists on component mount
+  // Comprobar si la cuenta de depósito en garantía ya existe al montar el componente
   useEffect(() => {
     const checkExistingEscrow = async () => {
       const { data: existingEscrow } = await supabase
@@ -48,7 +48,7 @@ export function EscrowManagement({ adminId }: EscrowManagementProps) {
 
     try {
       const { data, error } = await supabase.functions.invoke('create-escrow-account', {
-        body: { adminId: adminId } // Pass adminId if needed for logging/permissions
+        body: { adminId: adminId } // Pasar adminId si es necesario para el registro/permisos
       });
 
       if (error) {
@@ -64,7 +64,7 @@ export function EscrowManagement({ adminId }: EscrowManagementProps) {
           message: data.message
         });
       } else if (data && !data.success) {
-        // Case where it already exists and function returns existing details
+        // Caso en el que ya existe y la función devuelve los detalles existentes
         setEscrowResult({
           publicKey: data.publicKey,
           secretKey: data.secretKey,

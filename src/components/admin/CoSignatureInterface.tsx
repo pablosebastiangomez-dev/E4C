@@ -31,7 +31,7 @@ export function CoSignatureInterface({ onApprove, onReject }: CoSignatureInterfa
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
-        {/* Header */}
+        {/* Encabezado */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -47,7 +47,7 @@ export function CoSignatureInterface({ onApprove, onReject }: CoSignatureInterfa
             </div>
           </div>
 
-          {/* Rejection Form */}
+          {/* Formulario de Rechazo */}
           {showRejectForm && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-6">
               <h4 className="text-red-900 mb-3">Motivo del Rechazo</h4>

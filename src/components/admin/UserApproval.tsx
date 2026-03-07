@@ -27,26 +27,26 @@ const UserApproval: React.FC = () => {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Approve New Users</h2>
+      <h2 className="text-xl font-semibold mb-4">Aprobar Nuevos Usuarios</h2>
       {users.length === 0 ? (
-        <p>No users waiting for approval.</p>
+        <p>No hay usuarios esperando aprobación.</p>
       ) : (
         <ul className="divide-y divide-gray-200">
           {users.map(user => (
             <li key={user.id} className="py-4 flex justify-between items-center">
               <div>
                 <p className="font-medium">{user.email}</p>
-                <p className="text-sm text-gray-500">Role: {user.user_metadata.role}</p>
+                <p className="text-sm text-gray-500">Rol: {user.user_metadata.role}</p>
               </div>
               {user.user_metadata.role === 'unapproved' ? (
                 <button
                   onClick={() => approveUser(user.id)}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
                 >
-                  Approve
+                  Aprobar
                 </button>
               ) : (
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Approved</span>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Aprobado</span>
               )}
             </li>
           ))}

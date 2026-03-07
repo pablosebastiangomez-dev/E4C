@@ -19,12 +19,12 @@ export function TeacherDashboardSelector({
     user?.id && teachers.some(t => t.id === user.id) ? user.id : null
   );
 
-  // Initialize with first teacher if none selected and teachers available
+  // Inicializar con el primer docente si no hay ninguno seleccionado y hay docentes disponibles
   useEffect(() => {
     if (!selectedTeacherId && teachers.length > 0) {
       const firstTeacherId = teachers[0].id;
       setSelectedTeacherId(firstTeacherId);
-      // Update user context to match selected teacher
+      // Actualizar el contexto del usuario para que coincida con el docente seleccionado
       switchUserRole('teacher', firstTeacherId);
     }
   }, [teachers, selectedTeacherId, switchUserRole]);
@@ -33,7 +33,7 @@ export function TeacherDashboardSelector({
 
   const handleTeacherSelect = (teacherId: string) => {
     setSelectedTeacherId(teacherId);
-    // Update user context when selecting a different teacher
+    // Actualizar el contexto del usuario al seleccionar un docente diferente
     switchUserRole('teacher', teacherId);
   };
 

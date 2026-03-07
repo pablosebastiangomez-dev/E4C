@@ -34,7 +34,7 @@ export function MyTasks({ studentId }: MyTasksProps) {
 
         setStudentTasks(studentTasksData || []);
 
-        // Fetch details for each unique task
+        // Obtener detalles para cada tarea única
         const uniqueTaskIds = [...new Set(studentTasksData.map(st => st.task_id))];
         const { data: tasksData, error: tasksError } = await supabase
           .from('tasks')
@@ -67,7 +67,7 @@ export function MyTasks({ studentId }: MyTasksProps) {
 
       if (updateError) throw updateError;
 
-      // Update local state
+      // Actualizar estado local
       setStudentTasks(prevTasks =>
         prevTasks.map(task =>
           task.id === studentTaskId ? { ...task, status: 'completed', completed_date: new Date().toISOString() } : task

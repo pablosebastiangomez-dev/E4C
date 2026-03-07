@@ -47,7 +47,7 @@ export default function App() {
 
   const handleCreateStudent = async () => {
 
-    console.log("handleCreateStudent at App.tsx level is now a placeholder.");
+    console.log("handleCreateStudent en App.tsx es ahora un marcador de posición.");
 
   };
 
@@ -55,7 +55,7 @@ export default function App() {
 
   const handleCreateTeacher = async () => {
 
-    console.log("handleCreateTeacher at App.tsx level is now a placeholder.");
+    console.log("handleCreateTeacher en App.tsx es ahora un marcador de posición.");
 
   };
 

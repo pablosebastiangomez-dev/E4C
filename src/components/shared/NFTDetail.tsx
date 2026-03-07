@@ -9,7 +9,7 @@ interface NFTDetailProps {
 }
 
 export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
-  // --- Datos de NFT de Prueba (Mock Data) ---
+  // --- Datos de NFT de Prueba (Datos Simulados) ---
   // Esta lista de NFTs es solo para demostración. En una aplicación real,
   // estos datos provendrían de una API o una base de datos.
   const mockNfts: NFT[] = [
@@ -87,7 +87,7 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
         <span>Volver</span>
       </button>
 
-      {/* Card Principal del NFT */}
+      {/* Tarjeta Principal del NFT */}
       <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-lg">
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-12 text-center">
           <div className="text-9xl mb-4">{nft.image}</div>
@@ -163,7 +163,7 @@ export function NFTDetail({ nftId, onBack }: NFTDetailProps) {
 
 
 
-          {/* Timestamp de Firma */}
+          {/* Marca de Tiempo de Firma */}
           <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-200">
             <span>Certificado el:</span>
             <span>

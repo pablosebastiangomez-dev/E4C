@@ -81,19 +81,19 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
     }));
 
     try {
-      // Attempt to insert all selected assignments
+      // Intentar insertar todas las asignaciones seleccionadas
       const { data: insertedData, error: insError } = await supabase
         .from('student_tasks')
         .insert(assignmentsToAttempt)
         .select('student_id'); // Select student_id of successfully inserted rows
 
       if (insError) {
-        if (insError.code === '23505') { // PostgreSQL unique_violation error code
+        if (insError.code === '23505') { // Código de error de violación de unicidad de PostgreSQL
           // Esto es una violación de la restricción única, lo que significa que algunas tareas ya estaban asignadas.
-          // We need to figure out which ones failed and which (if any) succeeded.
-          // Supabase insert with 'onConflict' or 'ignoreDuplicates' would be ideal,
-          // but current version of supabase-js insert doesn't support returning affected rows easily for partial failures.
-          // So, we'll re-query to find out which ones already existed.
+          // Necesitamos averiguar cuáles fallaron y cuáles (si hubo) tuvieron éxito.
+          // La inserción de Supabase con 'onConflict' o 'ignoreDuplicates' sería ideal,
+          // pero la versión actual de supabase-js insert no admite devolver filas afectadas fácilmente para fallas parciales.
+          // Por lo tanto, volveremos a consultar para averiguar cuáles ya existían.
           
           const { data: existingAssignments, error: queryError } = await supabase
             .from('student_tasks')
@@ -113,13 +113,13 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
           successfullyAssignedStudents = Array.from(selectedStudents).filter(studentId => !existingStudentIdsSet.has(studentId));
 
         } else {
-          // Other types of insertion errors
+          // Otros tipos de errores de inserción
           console.error("Error al asignar tarea:", insError);
           setError("Error al asignar tarea: " + insError.message);
           return;
         }
       } else {
-        // All assignments were successful
+        // Todas las asignaciones fueron exitosas
         successfullyAssignedStudents = insertedData.map(d => d.student_id);
       }
 
@@ -141,13 +141,13 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
         setSelectedStudents(new Set());
       }, 3000); // Show success message a bit longer
 
-      // Use a custom toast or notification instead of alert for better UX
+      // Usar un toast o notificación personalizada en lugar de alerta para una mejor UX
       // Por ahora, actualicemos el estado de error para mostrar el mensaje de retroalimentación en el componente de error de la UI.
       // Si no hay un error real, simplemente mostramos el éxito.
       if (alreadyAssignedStudents.length > 0) {
-        setError(feedbackMessage); // Display feedback for partially failed/already assigned
+        setError(feedbackMessage); // Mostrar retroalimentación para asignaciones parcial o ya fallidas
       } else {
-        setError(null); // Ensure error is clear for full success
+        setError(null); // Asegurar que el error sea claro para un éxito total
       }
 
     } catch (err: any) {
@@ -159,10 +159,10 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
   const handleSelectAll = () => {
     const allFilteredStudentIds = new Set(filteredStudents.map(s => s.id));
     if (selectedStudents.size === filteredStudents.length && filteredStudents.length > 0) {
-      // All selected, deselect all
+      // Todos seleccionados, deseleccionar todos
       setSelectedStudents(new Set());
     } else {
-      // Not all selected, select all
+      // No todos seleccionados, seleccionar todos
       setSelectedStudents(allFilteredStudentIds);
     }
   };

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { UserPlus, Search } from 'lucide-react';
 import type { Teacher } from '../../types';
-import Select from 'react-select'; // Import react-select
+import Select from 'react-select'; // Importar react-select
 
 const subjectOptions = [
   { value: "Lengua y Literatura", label: "Lengua y Literatura" },
@@ -25,7 +25,7 @@ interface TeacherManagementProps {
   onCreateTeacher: (teacher: Omit<Teacher, 'id' | 'stellar_public_key'>) => Promise<void>;
 }
 
-export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManagementProps) { // Props eliminadas
+export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManagementProps) { // Propiedades eliminadas
 
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherEmail, setNewTeacherEmail] = useState('');

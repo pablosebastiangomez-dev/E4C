@@ -9,7 +9,7 @@ interface WalletProps {
 }
 
 export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: WalletProps) {
-  // --- Datos Simulados (Mock Data) ---
+  // --- Datos Simulados ---
   // En una aplicación real, estos datos vendrían de una API o un contexto global de la aplicación.
   const mockStudents: Student[] = [
     { id: 'demo-student-id', name: 'Jorge Luis Borges', email: 'jorge.borges@example.com', enrollmentDate: '2023-09-01', tokens: 250, tasksCompleted: 15, nfts: ['nft-1', 'nft-2'], grade: '10th' },
@@ -99,7 +99,7 @@ export function Wallet({ studentId, onViewNFT, onNavigateToMarketplace }: Wallet
         </div>
         <div className="p-6">
           {/* --- Renderizado Condicional: No hay NFTs --- */}
-          {/* Si el estudiante no tiene NFTs, se muestra un mensaje; de lo contrario, se renderiza el grid de NFTs. */}
+          {/* Si el estudiante no tiene NFTs, se muestra un mensaje; de lo contrario, se renderiza la cuadrícula de NFTs. */}
           {(studentNFTs || []).length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🏆</div>

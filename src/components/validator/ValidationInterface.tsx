@@ -51,7 +51,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
-        {/* Header */}
+        {/* Encabezado */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
           </div>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {/* Detalles del Logro */}
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
@@ -149,7 +149,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
 
 
 
-          {/* Rejection Form */}
+          {/* Formulario de Rechazo */}
           {showRejectForm && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-6">
               <h4 className="text-red-900 mb-3">Motivo del Rechazo</h4>
@@ -164,7 +164,7 @@ export function ValidationInterface({ request, onApprove, onReject, onClose }: V
           )}
         </div>
 
-        {/* Actions */}
+        {/* Acciones */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           {!showRejectForm ? (
             <div className="flex gap-3">

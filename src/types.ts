@@ -8,19 +8,19 @@ export interface Student {
   tokens: number;
   tasksCompleted: number;
   nfts: string[]; // Array de IDs de NFT
-  grade: string; // Añadido de mockData
+  grade: string; // Añadido de datos simulados
   stellar_public_key?: string;
   curso?: string;
   division?: string;
   escuela?: string;
-  alias?: string; // New: Optional alias for public display
+  alias?: string; // Nuevo: Alias opcional para visualización pública
 }
 
 export interface Teacher {
   id: string;
   name: string;
   email: string;
-  subjects: string[]; // Añadido de mockData
+  subjects: string[]; // Añadido de datos simulados
   curso?: string;
   division?: string;
   escuela?: string;

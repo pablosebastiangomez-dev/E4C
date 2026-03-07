@@ -10,7 +10,7 @@ import { StudentManagement } from './StudentManagement';
 import { TeacherManagement } from './TeacherManagement';
 import { ValidatorManagement } from './ValidatorManagement';
 import UserApproval from './UserApproval';
-import { EscrowManagement } from './EscrowManagement'; // Import the new component
+import { EscrowManagement } from './EscrowManagement'; // Importar el nuevo componente
 import * as StellarSdk from '@stellar/stellar-sdk';
 
 export default function AdminDashboard() {
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
           { id: 'validators', label: 'Validadores', icon: ShieldCheck, color: 'green' },
           { id: 'approve', label: 'Aprobar', icon: UserCheck, color: 'blue' },
           { id: 'stellar-setup', label: 'Cuentas Stellar', icon: CreditCard, color: 'yellow' },
-          { id: 'escrow-setup', label: 'Bóveda E4C', icon: Warehouse, color: 'teal' }, // New tab
+          { id: 'escrow-setup', label: 'Bóveda E4C', icon: Warehouse, color: 'teal' }, // Nueva pestaña
         ].map(tab => (
           <button
             key={tab.id}
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="bg-green-50 border border-green-200 rounded-2xl p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Issuer */}
+                  {/* Emisor */}
                   <div className="space-y-2 text-gray-900">
                     <p className="text-xs font-bold text-green-700 uppercase">Cuenta Emisora (Issuer)</p>
                     <p className="text-[10px] font-mono break-all bg-white p-2 rounded border border-green-100">{stellarAccountCreationResult.issuerPublicKey}</p>
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   </div>
-                  {/* Distributor */}
+                  {/* Distribuidor */}
                   <div className="space-y-2 text-gray-900">
                     <p className="text-xs font-bold text-green-700 uppercase">Cuenta Distribuidora (Distributor)</p>
                     <p className="text-[10px] font-mono break-all bg-white p-2 rounded border border-green-100">{stellarAccountCreationResult.distributorPublicKey}</p>
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 
-                {/* Gestión Tokens */}
+                {/* Gestión de Tokens */}
                 <div className="pt-6 border-t border-green-200 flex gap-4 items-end">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Emitir más E4C</label>
@@ -327,10 +327,10 @@ export default function AdminDashboard() {
           </div>
         )}
         
-        {activeView === 'escrow-setup' && currentAdmin?.id && <EscrowManagement adminId={currentAdmin.id} />} {/* Render the new component */}
+        {activeView === 'escrow-setup' && currentAdmin?.id && <EscrowManagement adminId={currentAdmin.id} />} {/* Renderizar el nuevo componente */}
       </div>
 
-      {/* OVERLAYS */}
+      {/* SUPERPOSICIONES */}
       {isProcessing && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[110]">
           <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">

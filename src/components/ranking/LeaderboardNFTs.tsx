@@ -3,13 +3,13 @@ import type { NFTRequest } from '../../types';
 
 interface LeaderboardNFTsProps {
   nftRequests: NFTRequest[];
-  students: Student[]; // New prop
+  students: Student[]; // Nueva prop
 }
 
 interface StudentNFTCount {
   studentId: string;
   studentName: string;
-  studentAlias: string; // New field to hold the alias
+  studentAlias: string; // Nuevo campo para guardar el alias
   nftCount: number;
   nfts: NFTRequest[];
 }
@@ -21,8 +21,8 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
   
   nftRequests.filter(req => req.status === 'approved').forEach(nft => {
     const existing = studentNFTMap.get(nft.studentId);
-    const studentData = students.find(s => s.id === nft.studentId); // Find the corresponding student
-    const displayAlias = studentData?.alias || 'Estudiante E4C'; // Use alias if exists, else fall back to generic alias
+    const studentData = students.find(s => s.id === nft.studentId); // Encontrar el estudiante correspondiente
+    const displayAlias = studentData?.alias || 'Estudiante E4C'; // Usar alias si existe, de lo contrario usar alias genérico
 
     if (existing) {
       existing.nftCount++;
@@ -30,8 +30,8 @@ export function LeaderboardNFTs({ nftRequests }: LeaderboardNFTsProps) {
     } else {
       studentNFTMap.set(nft.studentId, {
         studentId: nft.studentId,
-        studentName: nft.studentName, // Keep original name if needed elsewhere
-        studentAlias: displayAlias, // Store the chosen display name
+        studentName: nft.studentName, // Mantener el nombre original si se necesita en otro lugar
+        studentAlias: displayAlias, // Almacenar el nombre de visualización elegido
         nftCount: 1,
         nfts: [nft],
       });

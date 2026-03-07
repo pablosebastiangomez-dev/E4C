@@ -8,8 +8,8 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationEnd }) => {
   useEffect(() => {
-    // Total animation duration for now. We can fine-tune this after all animations are in.
-    const totalAnimationDuration = 2500; // 2.5 seconds, as per recommendation
+    // Duración total de la animación por ahora. Podemos ajustarla después de que todas las animaciones estén listas.
+    const totalAnimationDuration = 2500; // 2.5 segundos, según la recomendación
     const timer = setTimeout(() => {
       onAnimationEnd();
     }, totalAnimationDuration);
@@ -20,12 +20,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationEnd }) => {
     <div
       className="fixed inset-0 flex flex-col items-center justify-center z-50 overflow-hidden"
       style={{
-        background: 'linear-gradient(to bottom right, #ffffff, #e0f2f7)', // Subtle gradient
-        animation: 'bgPulse 15s infinite ease-in-out', // Dynamic background
+        background: 'linear-gradient(to bottom right, #ffffff, #e0f2f7)', // Gradiente sutil
+        animation: 'bgPulse 15s infinite ease-in-out', // Fondo dinámico
         backgroundSize: '200% 200%',
       }}
     >
-      {/* Logo with fade-in and scale animation, plus subtle shadow */}
+      {/* Logotipo con animación de aparición gradual y escala, más sombra sutil */}
       <img
         src={LogoE4C}
         alt="Logo E4C"
@@ -33,19 +33,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onAnimationEnd }) => {
         style={{ animation: 'fadeInScale 1s ease-out forwards' }}
       />
 
-      {/* Subtitle with slide-up and fade-in animation */}
+      {/* Subtítulo con animación de deslizamiento hacia arriba y aparición gradual */}
       <p
-        className="mt-4 text-gray-600 text-lg font-light tracking-wide" // Refined typography
-        style={{ animation: 'slideInUp 1s ease-out forwards 0.5s', opacity: 0 }} // Delayed animation
+        className="mt-4 text-gray-600 text-lg font-light tracking-wide" // Tipografía refinada
+        style={{ animation: 'slideInUp 1s ease-out forwards 0.5s', opacity: 0 }} // Animación retrasada
       >
         Cargando el acceso libre a la cultura.
       </p>
 
-      {/* Thematic Loading Indicator (Hexagonal bars - simulated for now) */}
+      {/* Indicador de Carga Temático (Barras hexagonales - simulado por ahora) */}
       <div className="mt-8 w-64 h-2 bg-gray-300 rounded-full overflow-hidden shadow-inner">
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-purple-600" // Thematic color
-          style={{ animation: 'loadProgress 1.5s ease-out forwards 1s', width: '100%' }} // Animated progress
+          className="h-full bg-gradient-to-r from-indigo-500 to-purple-600" // Color temático
+          style={{ animation: 'loadProgress 1.5s ease-out forwards 1s', width: '100%' }} // Progreso animado
         ></div>
       </div>
     </div>

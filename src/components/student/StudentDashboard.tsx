@@ -23,8 +23,8 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
   const [studentData, setStudentData] = useState<Student | null>(null);
   const [nftRequests, setNftRequests] = useState<NFTRequest[]>(propNftRequests || []);
   const [e4cBalance, setE4cBalance] = useState<string | null>(null);
-  const [isLinked, setIsLinked] = useState(true); // Re-add
-  const [isLinking, setIsLinking] = useState(false); // Re-add
+  const [isLinked, setIsLinked] = useState(true); // Reañadir
+  const [isLinking, setIsLinking] = useState(false); // Reañadir
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,26 +39,26 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
       let student: Student | null = null;
 
       if (studentId.startsWith('mock-')) {
-        // If it's a mock student, use the mock user data from auth context
+        // Si es un estudiante simulado, usar los datos de usuario simulados del contexto de autenticación
         if (user && user.user_metadata.role === 'student' && user.id === studentId) {
           student = {
             id: user.id,
             name: user.user_metadata.name || 'Mock Student',
             email: user.user_metadata.email || 'mock@student.com',
-            enrollmentDate: new Date().toISOString(), // Mock date
-            tokens: 0, // Mock tokens
-            tasksCompleted: 0, // Mock tasks
-            nfts: [], // Mock NFTs
-            grade: '', // Mock grade
-            curso: 'Mock', // Mock curso
+            enrollmentDate: new Date().toISOString(), // Fecha simulada
+            tokens: 0, // Tokens simulados
+            tasksCompleted: 0, // Tareas simuladas
+            nfts: [], // NFTs simulados
+            grade: '', // Calificación simulada
+            curso: 'Mock', // Curso simulado
             division: 'A', // Mock division
             escuela: 'Mock School', // Mock escuela
-            stellar_public_key: undefined, // Mock public key
+            stellar_public_key: undefined, // Clave pública simulada
             alias: 'mockstudent'
           };
         }
       } else {
-        // Otherwise, fetch from Supabase
+        // De lo contrario, obtener de Supabase
         const { data: fetchedStudent } = await supabase
           .from('students')
           .select('*')
@@ -87,10 +87,10 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
             
             if (e4c) {
               setE4cBalance(e4c.balance);
-              setIsLinked(true); // Re-add
+              setIsLinked(true); // Reañadir
             } else {
               setE4cBalance('0');
-              setIsLinked(false); // Re-add
+              setIsLinked(false); // Reañadir
             }
           } catch (e) {
             setE4cBalance('0');
@@ -117,9 +117,9 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
       
       alert('Token E4C vinculado con éxito. Por favor, espera unos segundos y recarga la página para ver los cambios.'); 
       setIsLinked(true);
-      // A more robust solution would trigger a re-fetch of the student's account data and E4C balance
-      // To achieve this, you could refactor the fetchData into a useCallback or pass it down.
-      // For simplicity in this fix, we advise reloading.
+      // Una solución más robusta activaría una nueva obtención de los datos de la cuenta del estudiante y el saldo de E4C
+      // Para lograr esto, se podría refactorizar fetchData en un useCallback o pasarlo como prop.
+      // Para simplificar esta corrección, aconsejamos recargar la página.
     } catch (error: any) {
       console.error("Error al vincular el token E4C:", error);
       alert(`Error al vincular el token: ${error.message}`);
@@ -135,7 +135,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
     { id: 'tokens' as StudentView, label: 'Mis Tokens', icon: Coins, color: 'indigo' },
     { id: 'nfts' as StudentView, label: 'Mis Logros NFT', icon: Trophy, color: 'purple' },
     { id: 'marketplace' as StudentView, label: 'Marketplace', icon: ShoppingBag, color: 'pink' },
-    { id: 'profile-settings' as StudentView, label: 'ConfiguraciÃ³n de Perfil', icon: User, color: 'gray' }, // New tab
+    { id: 'profile-settings' as StudentView, label: 'ConfiguraciÃ³n de Perfil', icon: User, color: 'gray' }, // Nueva pestaña
   ];
 
   if (allStudents.length === 0) {

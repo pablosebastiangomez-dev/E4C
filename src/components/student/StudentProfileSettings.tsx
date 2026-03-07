@@ -10,7 +10,7 @@ interface StudentProfileSettingsProps {
 }
 
 export function StudentProfileSettings({ studentId }: StudentProfileSettingsProps) {
-  const { allStudents } = useAuth(); // To potentially refresh student list if needed
+  const { allStudents } = useAuth(); // Para actualizar potencialmente la lista de estudiantes si es necesario
   const [student, setStudent] = useState<Student | null>(null);
   const [alias, setAlias] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -31,7 +31,7 @@ export function StudentProfileSettings({ studentId }: StudentProfileSettingsProp
         setStudent(null);
       } else {
         setStudent(data as Student);
-        setAlias(data.alias || ''); // Set current alias or empty string if null
+        setAlias(data.alias || ''); // Establecer el alias actual o una cadena vacía si es nulo
         setError(null);
       }
       setLoading(false);
@@ -59,18 +59,18 @@ export function StudentProfileSettings({ studentId }: StudentProfileSettingsProp
         .from('students')
         .update({ alias: alias.trim() })
         .eq('id', studentId)
-        .select(); // Select the updated row to get fresh data
+        .select(); // Seleccionar la fila actualizada para obtener datos recientes
 
       if (error) {
-        if (error.code === '23505') { // Unique violation error code for PostgreSQL
+        if (error.code === '23505') { // Código de error de violación de unicidad para PostgreSQL
           setError('Este alias ya está en uso. Por favor, elige otro.');
         } else {
           setError(error.message);
         }
       } else {
-        setStudent(data[0] as Student); // Update local student state
+        setStudent(data[0] as Student); // Actualizar el estado del estudiante local
         setSuccess('¡Alias guardado con éxito!');
-        // Optionally, trigger a refresh of student data in authContext or parent
+        // Opcionalmente, activar una actualización de los datos del estudiante en authContext o en el padre
         // si la lista de allStudents necesita reflejar el nuevo alias inmediatamente.
         // Por ahora, se asume que es principalmente para visualización y se volverá a cargar en la próxima carga.
       }
@@ -118,7 +118,7 @@ export function StudentProfileSettings({ studentId }: StudentProfileSettingsProp
             onChange={(e) => setAlias(e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3"
             placeholder="Introduce tu alias público"
-            maxLength={30} // Limit alias length
+            maxLength={30} // Limitar la longitud del alias
           />
           {error && (
             <p className="mt-2 text-sm text-red-600 flex items-center">

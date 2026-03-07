@@ -106,7 +106,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
     setTransactionError(null);
 
     try {
-      // Invocar la Edge Function para realizar la transacción Stellar
+      // Invocar la función Edge para realizar la transacción Stellar
       const { data, error } = await supabase.functions.invoke('redeem-e4c-tokens', {
         body: { 
           studentId: studentId,
@@ -121,7 +121,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
       }
 
       if (data && data.success) {
-        setQrCodeData(data.voucher_uuid); // Usar el UUID generado por la Edge Function
+        setQrCodeData(data.voucher_uuid); // Usar el UUID generado por la función Edge
         setTransactionSuccess(true);
         setShowConfirmation(false);
         setShowQR(true);
@@ -139,7 +139,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Encabezado */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Marketplace Cultural</h2>
@@ -168,7 +168,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
         ))}
       </div>
 
-      {/* Grid de Productos */}
+      {/* Cuadrícula de Productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRewards.map(reward => {
           const canAfford = parseFloat(e4cBalance) >= reward.cost;
