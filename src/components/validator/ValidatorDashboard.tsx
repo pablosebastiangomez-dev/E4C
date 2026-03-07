@@ -10,7 +10,7 @@ interface ValidatorDashboardProps {
 }
 
 export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks }: ValidatorDashboardProps) {
-  const { allValidators } = useAuth();
+  const { allValidators, refreshUsers } = useAuth();
   const [validatorData, setValidatorData] = useState<Validator | null>(null);
   const [tasksCache, setTasksCache] = useState<Map<string, Task>>(new Map());
   const [studentsCache, setStudentsCache] = useState<Map<string, Student>>(new Map());
@@ -103,7 +103,7 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks 
 
       alert(`¡Validación Exitosa! Se han enviado ${item.task.points} E4C a ${item.student.name}.`);
       
-      window.location.reload(); 
+      await refreshUsers();
     } catch (err: any) {
       console.error("Error en validación:", err);
       alert(`Fallo en la transferencia: ${err.message}`);
@@ -129,7 +129,7 @@ export function ValidatorDashboard({ validatorId: propValidatorId, studentTasks 
 
       alert(`Tarea de ${taskToReject.student?.name || 'Alumno Desconocido'} rechazada con éxito.`);
       
-      window.location.reload(); 
+      await refreshUsers(); 
     } catch (err: any) {
       console.error("Error al rechazar tarea:", err);
       alert(`Fallo al rechazar la tarea: ${err.message}`);

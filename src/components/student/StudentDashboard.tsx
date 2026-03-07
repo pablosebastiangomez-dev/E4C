@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Coins, Award, ShoppingBag, Trophy, ClipboardList, Users, AlertCircle, Hourglass, User } from 'lucide-react';
 import { MyTokens } from './MyTokens';
 import { MyNFTs } from './MyNFTs';
@@ -23,8 +23,8 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
   const [studentData, setStudentData] = useState<Student | null>(null);
   const [nftRequests, setNftRequests] = useState<NFTRequest[]>(propNftRequests || []);
   const [e4cBalance, setE4cBalance] = useState<string | null>(null);
-  const [isLinked, setIsLinked] = useState(true);
-  const [isLinking, setIsLinking] = useState(false);
+  const [isLinked, setIsLinked] = useState(true); // Re-add
+  const [isLinking, setIsLinking] = useState(false); // Re-add
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,10 +87,10 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
             
             if (e4c) {
               setE4cBalance(e4c.balance);
-              setIsLinked(true);
+              setIsLinked(true); // Re-add
             } else {
               setE4cBalance('0');
-              setIsLinked(false); // No tiene el trustline
+              setIsLinked(false); // Re-add
             }
           } catch (e) {
             setE4cBalance('0');
@@ -102,12 +102,50 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
     fetchData();
   }, [studentId]);
 
+  const handleLinkToken = async () => {
+    if (!studentId) return;
+
+    setIsLinking(true);
+    try {
+      // Assuming your Supabase Edge Function is exposed at this path.
+      // In a real application, you might use a more robust client-side function call or a dedicated API client.
+      const response = await fetch('/functions/link-e4c-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Assuming your Supabase client handles auth headers automatically,
+          // or you might need to manually add them like 'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ studentId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Token E4C vinculado con éxito. Por favor, espera unos segundos y recarga la página para ver los cambios.'); 
+        setIsLinked(true);
+        // A more robust solution would trigger a re-fetch of the student's account data and E4C balance
+        // To achieve this, you could refactor the fetchData into a useCallback or pass it down.
+        // For simplicity in this fix, we advise reloading.
+      } else {
+        throw new Error(data.error || 'Fallo al vincular el token E4C.');
+      }
+    } catch (error: any) {
+      console.error("Error al vincular el token E4C:", error);
+      alert(`Error al vincular el token: ${error.message}`);
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   const tabs = [
     { id: 'my-tasks' as StudentView, label: 'Mis Tareas', icon: ClipboardList, color: 'emerald' },
+
+
     { id: 'tokens' as StudentView, label: 'Mis Tokens', icon: Coins, color: 'indigo' },
     { id: 'nfts' as StudentView, label: 'Mis Logros NFT', icon: Trophy, color: 'purple' },
     { id: 'marketplace' as StudentView, label: 'Marketplace', icon: ShoppingBag, color: 'pink' },
-    { id: 'profile-settings' as StudentView, label: 'Configuración de Perfil', icon: User, color: 'gray' }, // New tab
+    { id: 'profile-settings' as StudentView, label: 'ConfiguraciÃ³n de Perfil', icon: User, color: 'gray' }, // New tab
   ];
 
   if (allStudents.length === 0) {
@@ -143,7 +181,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
-        <h2 className="text-3xl font-bold">¡Hola, {studentData.name}! 👋</h2>
+        <h2 className="text-3xl font-bold">Â¡Hola, {studentData.name}! ðŸ‘‹</h2>
         <p className="mt-2 opacity-90 text-indigo-100">
           ID: {studentId} | {studentData.curso}° "{studentData.division}" - {studentData.escuela}
         </p>
@@ -161,7 +199,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
               <p className="text-sm text-amber-700">Tu billetera no está lista para recibir E4C. Haz clic en el botón para activarla.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLinkToken}
             disabled={isLinking}
             className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-all flex items-center gap-2 shadow-md"
@@ -213,3 +251,4 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
     </div>
   );
 }
+

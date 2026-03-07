@@ -37,6 +37,7 @@ interface AuthContextType {
   switchUserRole: (role: UserRole, id?: string) => Promise<void>; // Make it async here too
   allStudents: Student[];
   allTeachers: Teacher[];
+  allAdmins: Admin[];
 
   allValidators: Validator[];
   currentRole: UserRole;
@@ -52,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
-  // const [allAdmins, setAllAdmins] = useState<Admin[]>([]);
+  const [allAdmins, setAllAdmins] = useState<Admin[]>([]); // Uncommented and initialized
   const [allValidators, setAllValidators] = useState<Validator[]>([]);
 
   const [registeredEmails, setRegisteredEmails] = useState<Set<string>>(new Set(['test@example.com', 'admin@example.com']));
@@ -137,12 +138,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAllTeachers(teachersData as Teacher[]);
     }
     
-    // const { data: adminsData, error: adminsError } = await supabase.from('admins').select('*');
-    // if (adminsError) {
-    //   console.error('Error fetching admins:', adminsError);
-    // } else {
-    //   setAllAdmins(adminsData as Admin[]);
-    // }
+    const { data: adminsData, error: adminsError } = await supabase.from('admins').select('*');
+    if (adminsError) {
+      console.error('Error fetching admins:', adminsError);
+    } else {
+      setAllAdmins(adminsData as Admin[]);
+    }
     
     const { data: validatorsData, error: validatorsError } = await supabase.from('validators').select('*');
     if (validatorsError) {
@@ -150,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setAllValidators(validatorsData as Validator[]);
     }
-    return { currentStudents, adminsData: [], teachersData: teachersData || [], validatorsData: validatorsData || [] };
+    return { currentStudents, adminsData: adminsData || [], teachersData: teachersData || [], validatorsData: validatorsData || [] };
   }, []);
 
   const switchUserRole = useCallback(async (role: UserRole, id?: string) => { // Make it async and useCallback
@@ -201,6 +202,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
       }
+    } else if (role === 'admin') { // Added admin role handling
+      const adminIdToUse = id || (allAdmins.length > 0 ? allAdmins[0].id : undefined);
+      if (adminIdToUse) {
+        const admin = allAdmins.find(a => a.id === adminIdToUse);
+        if (admin) {
+          selectedUser = {
+            id: admin.id,
+            app_metadata: {},
+            user_metadata: { ...userMetadata, name: admin.name, email: admin.email },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          };
+        }
+      }
     } else {
       selectedUser = {
         id: `mock-${role}-id`,
@@ -225,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setSession(mockSession); // Después de establecer el usuario seleccionado, también se establece una sesión de prueba.
 
-  }, [allStudents, allTeachers, allValidators]); // Dependencies need to include relevant state if used inside.
+  }, [allStudents, allTeachers, allAdmins, allValidators]); // Dependencies need to include relevant state if used inside.
 
   useEffect(() => {
     const initialLoad = async () => {

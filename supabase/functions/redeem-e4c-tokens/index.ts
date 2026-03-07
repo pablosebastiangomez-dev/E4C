@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
-const E4C_ESCROW_ACCOUNT_PUBLIC_KEY = Deno.env.get("E4C_ESCROW_ACCOUNT_PUBLIC_KEY");
 
 serve(async (req) => {
   // Manejo inmediato de CORS (Preflight)
@@ -33,7 +32,19 @@ serve(async (req) => {
     
     // Validaciones iniciales
     if (!studentId || !amount || !rewardId) throw new Error("Datos de canje incompletos");
-    if (!E4C_ESCROW_ACCOUNT_PUBLIC_KEY) throw new Error("La clave pública de la bóveda (E4C_ESCROW_ACCOUNT_PUBLIC_KEY) no está configurada en Supabase.");
+
+    // Fetch E4C_ESCROW_ACCOUNT_PUBLIC_KEY dynamically
+    const { data: escrowWallet, error: escrowError } = await supabaseClient
+      .from('stellar_wallets')
+      .select('public_key')
+      .eq('role', 'escrow')
+      .limit(1)
+      .single();
+
+    if (escrowError || !escrowWallet?.public_key) {
+      throw new Error("No se pudo encontrar la clave pública de la bóveda (E4C_ESCROW_ACCOUNT_PUBLIC_KEY) en la base de datos.");
+    }
+    const E4C_ESCROW_ACCOUNT_PUBLIC_KEY = escrowWallet.public_key;
 
     console.log(`Iniciando canje: Alumno ${studentId} -> ${amount} E4C`);
 

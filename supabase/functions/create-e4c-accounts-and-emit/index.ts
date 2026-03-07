@@ -81,20 +81,17 @@ Deno.serve(async (req) => {
 
     // --- PASO 4.1: ESTABLECER TRUSTLINE PARA LA CUENTA DE LA BÓVEDA (ESCROW) ---
     // La cuenta de la bóveda también debe confiar en el token E4C para poder recibirlo.
-    if (!E4C_ESCROW_ACCOUNT_PUBLIC_KEY) {
-      throw new Error("E4C_ESCROW_ACCOUNT_PUBLIC_KEY no está configurada.");
-    }
-    
-    // Obtener la clave secreta de la bóveda desde la base de datos
+    // Obtener la clave pública y secreta de la bóveda desde la base de datos
     const { data: escrowWallet, error: escrowWalletError } = await supabaseClient
       .from('stellar_wallets')
       .select('secret_key, public_key')
-      .eq('public_key', E4C_ESCROW_ACCOUNT_PUBLIC_KEY)
+      .eq('role', 'escrow') // Buscar por rol 'escrow'
       .single();
 
-    if (escrowWalletError || !escrowWallet?.secret_key) {
-      throw new Error(`No se encontró la clave secreta para la bóveda ${E4C_ESCROW_ACCOUNT_PUBLIC_KEY}.`);
+    if (escrowWalletError || !escrowWallet?.secret_key || !escrowWallet?.public_key) {
+      throw new Error("No se encontró la clave pública o secreta para la bóveda con rol 'escrow' en la base de datos.");
     }
+    const E4C_ESCROW_ACCOUNT_PUBLIC_KEY = escrowWallet.public_key;
 
     const escrowKeys = Keypair.fromSecret(escrowWallet.secret_key);
 
