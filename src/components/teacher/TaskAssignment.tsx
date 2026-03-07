@@ -62,6 +62,10 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
     return matchEscuela && matchCurso && matchDivision;
   });
 
+  const sortedStudents = useMemo(() => {
+    return filteredStudents.sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredStudents]);
+
   const handleAssign = async () => {
     if (selectedStudents.size === 0 || !selectedTask) {
       setError("Por favor, selecciona al menos un alumno y una tarea.");
@@ -157,8 +161,8 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
   };
 
   const handleSelectAll = () => {
-    const allFilteredStudentIds = new Set(filteredStudents.map(s => s.id));
-    if (selectedStudents.size === filteredStudents.length && filteredStudents.length > 0) {
+    const allFilteredStudentIds = new Set(sortedStudents.map(s => s.id));
+    if (selectedStudents.size === sortedStudents.length && sortedStudents.length > 0) {
       // Todos seleccionados, deseleccionar todos
       setSelectedStudents(new Set());
     } else {
@@ -271,10 +275,10 @@ export function TaskAssignment({ teacherId }: TaskAssignmentProps) {
             </div>
           </div>
           <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
-            {filteredStudents.length === 0 ? (
+            {sortedStudents.length === 0 ? (
               <p className="text-center py-8 text-gray-400">No hay alumnos que coincidan con el filtro en tu escuela.</p>
             ) : (
-              filteredStudents.map(student => (
+              sortedStudents.map(student => (
                 <div 
                   key={student.id} 
                   onClick={() => {
