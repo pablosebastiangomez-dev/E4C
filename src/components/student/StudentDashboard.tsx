@@ -171,7 +171,7 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
-        <h2 className="text-3xl font-bold">Â¡Hola, {studentData.name}! ðŸ‘‹</h2>
+        <h2 className="text-3xl font-bold">¡Hola, {studentData.name}! 👋</h2>
         <p className="mt-2 opacity-90 text-indigo-100">
           ID: {studentId} | {studentData.curso}° "{studentData.division}" - {studentData.escuela}
         </p>
