@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   const { user, allAdmins, allStudents, allTeachers, allValidators, refreshUsers, switchUserRole } = useAuth();
   
   const currentAdmin = useMemo(() => {
-    if (!user?.id || !allAdmins.length) return null;
+    if (!user?.id || !Array.isArray(allAdmins) || allAdmins.length === 0) return null;
     return allAdmins.find(admin => admin.id === user.id);
   }, [user?.id, allAdmins]);
 

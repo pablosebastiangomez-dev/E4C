@@ -133,14 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: teachersData, error: teachersError } = await supabase.from('teachers').select('*');
     if (teachersError) {
-      console.error('Error fetching teachers:', teachersError);
+      console.error('Error fetching teachers:', teachersError.message || teachersError);
     } else {
       setAllTeachers(teachersData as Teacher[]);
     }
     
     const { data: adminsData, error: adminsError } = await supabase.from('admins').select('*');
     if (adminsError) {
-      console.error('Error fetching admins:', adminsError);
+      console.error('Error fetching admins:', adminsError.message || adminsError);
     } else {
       setAllAdmins(adminsData as Admin[]);
     }
@@ -240,43 +240,118 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setSession(mockSession); // Después de establecer el usuario seleccionado, también se establece una sesión de prueba.
 
-  }, [allStudents, allTeachers, allAdmins, allValidators]); // Dependencies need to include relevant state if used inside.
+  }, [allStudents, allTeachers, allAdmins, allValidators, user]); // Added user to dependencies.
 
   useEffect(() => {
     const initialLoad = async () => {
-      setLoading(true); // Solo activamos el loading real aquí
-      const { currentStudents } = await refreshUsers(); // Get currentStudents directly
-      
-      // Prioritize setting the first real student if available
-      if (currentStudents.length > 0) {
-        const firstStudent = currentStudents[0];
-        const initialUser: User = {
-          id: firstStudent.id,
-          app_metadata: {},
-          user_metadata: { role: 'student' as UserRole, name: firstStudent.name, email: firstStudent.email },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        };
-        setUser(initialUser);
-      } else if (!user) { // Only set a default if no user is already logged in and no real students
-        const mockStudentUser = {
-          id: `mock-student-id-${Date.now()}`,
-          app_metadata: {},
-          user_metadata: { role: 'student' as UserRole, name: "Student (Mock)", email: "mock@student.com" },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        };
-        setUser(mockStudentUser);
+      setLoading(true);
+
+      const { data: { session: supabaseSession } } = await supabase.auth.getSession();
+      const supabaseAuthUser = supabaseSession?.user || null;
+      setSession(supabaseSession); // Update session state
+
+      const { currentStudents, adminsData, teachersData, validatorsData } = await refreshUsers();
+
+      if (supabaseAuthUser) {
+        // If there's an authenticated user from Supabase, try to identify their role
+        const foundAdmin = adminsData.find(admin => admin.id === supabaseAuthUser.id);
+        if (foundAdmin) {
+          const authenticatedAdminUser: User = {
+            id: foundAdmin.id,
+            app_metadata: supabaseAuthUser.app_metadata,
+            user_metadata: { role: 'admin' as UserRole, name: foundAdmin.name, email: foundAdmin.email },
+            aud: supabaseAuthUser.aud,
+            created_at: supabaseAuthUser.created_at,
+          };
+          setUser(authenticatedAdminUser);
+          setCurrentRole('admin');
+        } else {
+            // Check for other roles if not an admin
+            const foundTeacher = teachersData.find(teacher => teacher.id === supabaseAuthUser.id);
+            if (foundTeacher) {
+                const authenticatedTeacherUser: User = {
+                    id: foundTeacher.id,
+                    app_metadata: supabaseAuthUser.app_metadata,
+                    user_metadata: { role: 'teacher' as UserRole, name: foundTeacher.name, email: foundTeacher.email },
+                    aud: supabaseAuthUser.aud,
+                    created_at: supabaseAuthUser.created_at,
+                };
+                setUser(authenticatedTeacherUser);
+                setCurrentRole('teacher');
+            } else {
+                const foundValidator = validatorsData.find(validator => validator.id === supabaseAuthUser.id);
+                if (foundValidator) {
+                    const authenticatedValidatorUser: User = {
+                        id: foundValidator.id,
+                        app_metadata: supabaseAuthUser.app_metadata,
+                        user_metadata: { role: 'validator' as UserRole, name: foundValidator.name, email: foundValidator.email },
+                        aud: supabaseAuthUser.aud,
+                        created_at: supabaseAuthUser.created_at,
+                    };
+                    setUser(authenticatedValidatorUser);
+                    setCurrentRole('validator');
+                } else {
+                    const foundStudent = currentStudents.find(student => student.id === supabaseAuthUser.id);
+                    if (foundStudent) {
+                        const authenticatedStudentUser: User = {
+                            id: foundStudent.id,
+                            app_metadata: supabaseAuthUser.app_metadata,
+                            user_metadata: { role: 'student' as UserRole, name: foundStudent.name, email: foundStudent.email },
+                            aud: supabaseAuthUser.aud,
+                            created_at: supabaseAuthUser.created_at,
+                        };
+                        setUser(authenticatedStudentUser);
+                        setCurrentRole('student');
+                    } else {
+                        // Default to student role for authenticated users with no matching role in DB tables
+                        const defaultAuthUser: User = {
+                            id: supabaseAuthUser.id,
+                            app_metadata: supabaseAuthUser.app_metadata,
+                            user_metadata: { role: 'student' as UserRole, name: supabaseAuthUser.user_metadata.name || 'Authenticated User', email: supabaseAuthUser.email || 'no-email@example.com' },
+                            aud: supabaseAuthUser.aud,
+                            created_at: supabaseAuthUser.created_at,
+                        };
+                        setUser(defaultAuthUser);
+                        setCurrentRole('student');
+                    }
+                }
+            }
+        }
+      } else {
+        // If no authenticated user from Supabase
+        if (currentStudents.length > 0) {
+          const firstStudent = currentStudents[0];
+          const initialUser: User = {
+            id: firstStudent.id,
+            app_metadata: {},
+            user_metadata: { role: 'student' as UserRole, name: firstStudent.name, email: firstStudent.email },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          };
+          setUser(initialUser);
+          setCurrentRole('student');
+        } else {
+          // If no real students and no authenticated user, set a mock student
+          const mockStudentUser = {
+            id: `mock-student-id-${Date.now()}`,
+            app_metadata: {},
+            user_metadata: { role: 'student' as UserRole, name: "Student (Mock)", email: "mock@student.com" },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          };
+          setUser(mockStudentUser);
+          setCurrentRole('student');
+        }
       }
-      setCurrentRole('student'); // Ensure the current role is student by default
-      setLoading(false); // Terminamos el loading inicial
+
+      setLoading(false);
     };
     
     initialLoad();
   }, [refreshUsers]);
 
   return (
-    <AuthContext.Provider value={{ session, user, currentRole, loading, signIn, signUp, signOut, switchUserRole, allStudents, allTeachers, allValidators, refreshUsers }}>
+    <AuthContext.Provider value={{ session, user, currentRole, loading, signIn, signUp, signOut, switchUserRole, allStudents, allTeachers, allAdmins, allValidators, refreshUsers }}>
       {children}
     </AuthContext.Provider>
   );
