@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Coins, Award, ShoppingBag, Trophy, ClipboardList, Users, AlertCircle, Hourglass, User } from 'lucide-react';
 import { MyTokens } from './MyTokens';
 import { MyNFTs } from './MyNFTs';
@@ -107,29 +107,19 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
 
     setIsLinking(true);
     try {
-      // Assuming your Supabase Edge Function is exposed at this path.
-      // In a real application, you might use a more robust client-side function call or a dedicated API client.
-      const response = await fetch('/functions/link-e4c-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Assuming your Supabase client handles auth headers automatically,
-          // or you might need to manually add them like 'Authorization': `Bearer ${user.token}`
-        },
-        body: JSON.stringify({ studentId }),
+      const { data, error } = await supabase.functions.invoke('link-e4c-token', {
+        body: { studentId },
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Token E4C vinculado con éxito. Por favor, espera unos segundos y recarga la página para ver los cambios.'); 
-        setIsLinked(true);
-        // A more robust solution would trigger a re-fetch of the student's account data and E4C balance
-        // To achieve this, you could refactor the fetchData into a useCallback or pass it down.
-        // For simplicity in this fix, we advise reloading.
-      } else {
-        throw new Error(data.error || 'Fallo al vincular el token E4C.');
+      if (error) {
+        throw new Error(error.message);
       }
+      
+      alert('Token E4C vinculado con éxito. Por favor, espera unos segundos y recarga la página para ver los cambios.'); 
+      setIsLinked(true);
+      // A more robust solution would trigger a re-fetch of the student's account data and E4C balance
+      // To achieve this, you could refactor the fetchData into a useCallback or pass it down.
+      // For simplicity in this fix, we advise reloading.
     } catch (error: any) {
       console.error("Error al vincular el token E4C:", error);
       alert(`Error al vincular el token: ${error.message}`);
@@ -251,4 +241,3 @@ export function StudentDashboard({ studentId, nftRequests: propNftRequests }: St
     </div>
   );
 }
-
