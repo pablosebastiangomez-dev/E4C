@@ -78,14 +78,25 @@ export interface NFT {
   };
 }
 
-export interface Reward {
+export interface Partner {
   id: string;
   name: string;
+  description?: string;
+  contact_email?: string;
+  created_at?: string;
+}
+
+export interface Reward {
+  id: string;
+  partner_id?: string;
+  partner?: Partner; // Optional: Joined partner data
+  title: string;
   description: string;
-  cost: number;
-  category: string;
-  image: string;
-  available: number;
+  cost_e4c: number;
+  image_url?: string;
+  is_featured: boolean;
+  featured_until?: string;
+  created_at?: string;
 }
 
 export interface AchievementTemplate {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Coins, Users, CheckCircle, PlusCircle, Filter } from 'lucide-react';
 import { type Student, type Task, type Teacher } from '../../types';
 import { supabase } from '../../lib/supabaseClient';

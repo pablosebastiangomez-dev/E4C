@@ -20,6 +20,71 @@ const subjectOptions = [
   { value: "Tutoría", label: "Tutoría" },
 ];
 
+const sortedSchoolOptions = [
+  { value: "Colegio Nacional de Buenos Aires (UBA)", label: "Colegio Nacional de Buenos Aires (UBA)" },
+  { value: "Escuela Superior de Comercio Carlos Pellegrini (UBA)", label: "Escuela Superior de Comercio Carlos Pellegrini (UBA)" },
+  { value: "Instituto Libre de Segunda Enseñanza (ILSE)", label: "Instituto Libre de Segunda Enseñanza (ILSE)" },
+  { value: "Colegio N° 1 \"Bernardino Rivadavia\"", label: "Colegio N° 1 \"Bernardino Rivadavia\"" },
+  { value: "Colegio N° 2 \"Domingo Faustino Sarmiento\"", label: "Colegio N° 2 \"Domingo Faustino Sarmiento\"" },
+  { value: "Colegio N° 3 \"Mariano Moreno\"", label: "Colegio N° 3 \"Mariano Moreno\"" },
+  { value: "Colegio N° 4 \"Nicolás Avellaneda\"", label: "Colegio N° 4 \"Nicolás Avellaneda\"" },
+  { value: "Colegio N° 5 \"Bartolomé Mitre\"", label: "Colegio N° 5 \"Bartolomé Mitre\"" },
+  { value: "Colegio N° 6 \"Manuel Belgrano\"", label: "Colegio N° 6 \"Manuel Belgrano\"" },
+  { value: "Colegio N° 7 \"Juan Martín de Pueyrredón\"", label: "Colegio N° 7 \"Juan Martín de Pueyrredón\"" },
+  { value: "Colegio N° 8 \"Julio Argentino Roca\"", label: "Colegio N° 8 \"Julio Argentino Roca\"" },
+  { value: "Colegio N° 9 \"Justo José de Urquiza\"", label: "Colegio N° 9 \"Justo José de Urquiza\"" },
+  { value: "Colegio N° 10 \"José de San Martín\"", label: "Colegio N° 10 \"José de San Martín\"" },
+  { value: "Colegio N° 11 \"Hipólito Yrigoyen\"", label: "Colegio N° 11 \"Hipólito Yrigoyen\"" },
+  { value: "Colegio N° 12 \"Reconquista\"", label: "Colegio N° 12 \"Reconquista\"" },
+  { value: "Colegio N° 13 \"Tomás Espora\"", label: "Colegio N° 13 \"Tomás Espora\"" },
+  { value: "Colegio N° 14 \"Juan José Paso\"", label: "Colegio N° 14 \"Juan José Paso\"" },
+  { value: "Colegio N° 15 \"Revolución de Mayo\"", label: "Colegio N° 15 \"Revolución de Mayo\"" },
+  { value: "Colegio N° 16 \"Guillermo Rawson\"", label: "Colegio N° 16 \"Guillermo Rawson\"" },
+  { value: "Colegio N° 17 \"Primera Junta\"", label: "Colegio N° 17 \"Primera Junta\"" },
+  { value: "Colegio N° 19 \"Luis Pasteur\"", label: "Colegio N° 19 \"Luis Pasteur\"" },
+  { value: "EEM N° 1 \"Federico García Lorca\"", label: "EEM N° 1 \"Federico García Lorca\"" },
+  { value: "EEM N° 1 \"Julio Cortázar\"", label: "EEM N° 1 \"Julio Cortázar\"" },
+  { value: "EEM N° 1 \"Rodolfo Walsh\"", label: "EEM N° 1 \"Rodolfo Walsh\"" },
+  { value: "EEM N° 2 \"Rumania\"", label: "EEM N° 2 \"Rumania\"" },
+  { value: "EEM N° 2 \"Agustín Tosco\"", label: "EEM N° 2 \"Agustín Tosco\"" },
+  { value: "EEM N° 3 \"Antonio Devoto\"", label: "EEM N° 3 \"Antonio Devoto\"" },
+  { value: "EEM N° 3 \"Prof. Carlos Geniso\"", label: "EEM N° 3 \"Prof. Carlos Geniso\"" },
+  { value: "EEM N° 5 \"Héroes de Malvinas\"", label: "EEM N° 5 \"Héroes de Malvinas\"" },
+  { value: "EEM N° 5 \"Monseñor Enrique Angelelli\"", label: "EEM N° 5 \"Monseñor Enrique Angelelli\"" },
+  { value: "EEM N° 6 \"Padre Carlos Mugica\"", label: "EEM N° 6 \"Padre Carlos Mugica\"" },
+  { value: "EEM N° 7 \"Escuela de la Ribera\"", label: "EEM N° 7 \"Escuela de la Ribera\"" },
+  { value: "ET N° 1 \"Ingeniero Otto Krause\"", label: "ET N° 1 \"Ingeniero Otto Krause\"" },
+  { value: "ET N° 6 \"Fernando Fader\"", label: "ET N° 6 \"Fernando Fader\"" },
+  { value: "ET N° 9 \"Ingeniero Luis A. Huergo\"", label: "ET N° 9 \"Ingeniero Luis A. Huergo\"" },
+  { value: "ET N° 11 \"Manuel Belgrano\"", label: "ET N° 11 \"Manuel Belgrano\"" },
+  { value: "ET N° 17 \"Brigadier Gral. Cornelio Saavedra\"", label: "ET N° 17 \"Brigadier Gral. Cornelio Saavedra\"" },
+  { value: "ET N° 27 \"Hipólito Yrigoyen\"", label: "ET N° 27 \"Hipólito Yrigoyen\"" },
+  { value: "ET N° 28 \"República Francesa\"", label: "ET N° 28 \"República Francesa\"" },
+  { value: "ET N° 32 \"General José de San Martín\"", label: "ET N° 32 \"General José de San Martín\"" },
+  { value: "ET N° 35 \"Ingeniero Eduardo Latzina\"", label: "ET N° 35 \"Ingeniero Eduardo Latzina\"" },
+  { value: "Esc. de Comercio N° 1 \"Joaquín V. González\"", label: "Esc. de Comercio N° 1 \"Joaquín V. González\"" },
+  { value: "Esc. de Comercio N° 4 \"Baldomero Fernández Moreno\"", label: "Esc. de Comercio N° 4 \"Baldomero Fernández Moreno\"" },
+  { value: "Esc. de Comercio N° 5 \"José de San Martín\"", label: "Esc. de Comercio N° 5 \"José de San Martín\"" },
+  { value: "Esc. de Comercio N° 7 \"Manuel Belgrano\"", label: "Esc. de Comercio N° 7 \"Manuel Belgrano\"" },
+  { value: "Esc. de Comercio N° 11 \"Dr. José Peralta\"", label: "Esc. de Comercio N° 11 \"Dr. José Peralta\"" },
+  { value: "Esc. de Comercio N° 18 \"Reino de Suecia\"", label: "Esc. de Comercio N° 18 \"Reino de Suecia\"" },
+  { value: "Esc. de Comercio N° 30 \"Dr. Esteban Agustín Gascón\"", label: "Esc. de Comercio N° 30 \"Dr. Esteban Agustín Gascón\"" },
+  { value: "ENS N° 1 \"Presidente Roque Sáenz Peña\"", label: "ENS N° 1 \"Presidente Roque Sáenz Peña\"" },
+  { value: "ENS N° 2 \"Mariano Acosta\"", label: "ENS N° 2 \"Mariano Acosta\"" },
+  { value: "ENS N° 3 \"Bernardino Rivadavia\"", label: "ENS N° 3 \"Bernardino Rivadavia\"" },
+  { value: "ENS N° 4 \"Estanislao Severo Zeballos\"", label: "ENS N° 4 \"Estanislao Severo Zeballos\"" },
+  { value: "ENS N° 6 \"Vicente López y Planes\"", label: "ENS N° 6 \"Vicente López y Planes\"" },
+  { value: "ENS N° 10 \"Juan Bautista Alberdi\"", label: "ENS N° 10 \"Juan Bautista Alberdi\"" },
+  { value: "ENS en Lenguas Vivas \"Sofía E. B. de Spangenberg\" (Lengüitas)", label: "ENS en Lenguas Vivas \"Sofía E. B. de Spangenberg\" (Lengüitas)" },
+  { value: "IES en Lenguas Vivas \"Juan Ramón Fernández\"", label: "IES en Lenguas Vivas \"Juan Ramón Fernández\"" },
+  { value: "Escuela de Bellas Artes \"Manuel Belgrano\"", label: "Escuela de Bellas Artes \"Manuel Belgrano\"" },
+  { value: "Escuela de Bellas Artes \"Lola Mora\"", label: "Escuela de Bellas Artes \"Lola Mora\"" },
+  { value: "Escuela de Bellas Artes \"Rogelio Yrurtia\"", label: "Escuela de Bellas Artes \"Rogelio Yrurtia\"" },
+  { value: "Escuela de Música \"Juan Pedro Esnaola\"", label: "Escuela de Música \"Juan Pedro Esnaola\"" },
+  { value: "Escuela de Danzas \"Aída Mastrazzi\"", label: "Escuela de Danzas \"Aída Mastrazzi\"" },
+  { value: "Escuela de Cerámica N° 1", label: "Escuela de Cerámica N° 1" },
+].sort((a, b) => a.label.localeCompare(b.label));
+
 interface TeacherManagementProps {
   teachers: Teacher[];
   onCreateTeacher: (teacher: Omit<Teacher, 'id' | 'stellar_public_key'>) => Promise<void>;
@@ -46,8 +111,6 @@ export function TeacherManagement({ teachers, onCreateTeacher }: TeacherManageme
       (teacher.curso && teacher.curso.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (teacher.division && teacher.division.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (teacher.escuela && teacher.escuela.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 

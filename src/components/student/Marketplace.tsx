@@ -20,61 +20,45 @@ export function Marketplace({ studentId }: MarketplaceProps) {
   const [transactionSuccess, setTransactionSuccess] = useState(false);
   const [transactionError, setTransactionError] = useState<string | null>(null);
 
-  const initialRewards: Reward[] = [
-    { id: 'reward-1', name: 'Entrada 2D - Cine', description: 'Válido para cualquier función de lunes a jueves en salas seleccionadas.', cost: 100, category: 'Cine', image: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=800&q=80', available: 10 },
-    { id: 'reward-2', name: 'Obra: "El Método"', description: 'Pase para 1 persona en el Teatro San Martín. Funciones de fin de semana.', cost: 250, category: 'Teatro', image: 'https://images.unsplash.com/photo-1503095396549-80705bc06179?auto=format&fit=crop&w=800&q=80', available: 5 },
-    { id: 'reward-3', name: 'Membresía MALBA', description: 'Acceso ilimitado por 1 mes y catálogo digital de exposiciones.', cost: 400, category: 'Museos', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=800&q=80', available: 3 },
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loadingRewards, setLoadingRewards] = useState(true);
+  const [filterCategory, setFilterCategory] = useState<string>('');
+  const [categories, setCategories] = useState<string[]>([]);
 
-  const [rewards, setRewards] = useState<Reward[]>(initialRewards);
-  const [filterCategory, setFilterCategory] = useState<string>('Todos');
-
-  const categories = [
-    'Todos',
-    ...Array.from(new Set(initialRewards.map(r => r.category)))
-  ];
-
-  const fetchStellarBalance = useCallback(async () => {
-    if (!studentId) {
-      setE4cBalance('0');
-      return;
-    }
-
+  const fetchRewards = useCallback(async () => {
+    setLoadingRewards(true);
     try {
-      const { data: student, error: studentError } = await supabase
-        .from('students')
-        .select('stellar_public_key')
-        .eq('id', studentId)
-        .single();
+      const { data, error } = await supabase
+        .from('rewards')
+        .select(`
+          *,
+          partner (
+            name
+          )
+        `)
+        .order('is_featured', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      if (studentError || !student?.stellar_public_key) {
-        throw new Error("No se encontró la clave pública Stellar del estudiante.");
+      if (error) {
+        throw error;
       }
 
-      const publicKey = student.stellar_public_key;
-      const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
-      const account = await server.accounts().accountId(publicKey).call();
-      
-      const { data: issuerWallet } = await supabase
-        .from('stellar_wallets')
-        .select('public_key')
-        .eq('role', 'issuer')
-        .limit(1)
-        .single();
-
-      const e4c = account.balances.find(
-        (b: any) => b.asset_code === 'E4C' && b.asset_issuer === issuerWallet?.public_key
-      );
-      setE4cBalance(e4c ? e4c.balance : '0');
-    } catch (err: any) {
-      console.error("Error fetching Stellar balance:", err.message);
-      setE4cBalance('0');
+      setRewards(data || []);
+      const uniqueCategories = ['Todos', ...Array.from(new Set(data?.map(r => r.category || 'Otros')))];
+      setCategories(uniqueCategories);
+      setFilterCategory('Todos'); // Reset filter to 'Todos' after fetching
+    } catch (error: any) {
+      console.error("Error fetching rewards:", error.message);
+      setTransactionError("Error al cargar recompensas.");
+    } finally {
+      setLoadingRewards(false);
     }
-  }, [studentId]);
+  }, []);
 
   useEffect(() => {
     fetchStellarBalance();
-  }, [studentId, fetchStellarBalance]);
+    fetchRewards(); // Fetch rewards on component mount
+  }, [studentId, fetchStellarBalance, fetchRewards]);
 
   const filteredRewards =
     filterCategory === 'Todos'
@@ -110,7 +94,7 @@ export function Marketplace({ studentId }: MarketplaceProps) {
       const { data, error } = await supabase.functions.invoke('redeem-e4c-tokens', {
         body: { 
           studentId: studentId,
-          amount: selectedReward.cost,
+          amount: selectedReward.cost_e4c,
           rewardId: selectedReward.id
         },
       });
@@ -168,41 +152,45 @@ export function Marketplace({ studentId }: MarketplaceProps) {
         ))}
       </div>
 
-      {/* Cuadrícula de Productos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRewards.map(reward => {
-          const canAfford = parseFloat(e4cBalance) >= reward.cost;
-          return (
-            <div 
-              key={reward.id} 
-              className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition ${!canAfford && 'opacity-60 grayscale'}`}
-            >
-              <div className="h-48 bg-slate-200 relative">
-                <img src={reward.image} alt={reward.name} className="w-full h-full object-cover" />
-                <span className={`absolute top-4 left-4 ${
-                  reward.category === 'Cine' ? 'bg-indigo-600' : 
-                  reward.category === 'Teatro' ? 'bg-purple-600' : 
-                  'bg-amber-500'
-                } text-white px-3 py-1 rounded-full text-xs font-bold uppercase`}>{reward.category}</span>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">{reward.name}</h3>
-                <p className="text-slate-600 text-sm mb-4">{reward.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-indigo-600">{reward.cost} $E4C</span>
-                  <button 
-                    onClick={() => openModal(reward)} 
-                    disabled={!canAfford || processingTransaction}
-                    className="bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Canjear
-                  </button>
+      {loadingRewards ? (
+        <div className="text-center py-8">Cargando recompensas...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRewards.map(reward => {
+            const canAfford = parseFloat(e4cBalance) >= reward.cost_e4c;
+            return (
+              <div
+                key={reward.id}
+                className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition relative ${!canAfford && 'opacity-60 grayscale'}`}
+              >
+                {reward.is_featured && (
+                  <span className="absolute top-4 right-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold uppercase z-10">Destacado</span>
+                )}
+                <div className="h-48 bg-slate-200 relative">
+                  <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
+                  <span className="absolute bottom-0 left-0 bg-gradient-to-t from-black/80 to-transparent w-full pt-8 pb-4 px-4 text-white text-sm font-semibold">
+                    {reward.partner?.name || 'Partner Desconocido'}
+                  </span>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-2">{reward.title}</h3>
+                  <p className="text-slate-600 text-sm mb-4">{reward.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-indigo-600">{reward.cost_e4c} $E4C</span>
+                    <button
+                      onClick={() => openModal(reward)}
+                      disabled={!canAfford || processingTransaction}
+                      className="bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Canjear
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal de Confirmación / QR */}
       {(showConfirmation || showQR) && (
@@ -213,15 +201,15 @@ export function Marketplace({ studentId }: MarketplaceProps) {
               <div id="modal-step-1">
                 <h2 className="text-2xl font-bold mb-2">¿Confirmar canje?</h2>
                 <p className="text-slate-500 mb-6" id="modal-desc">
-                  Se debitarán {selectedReward?.cost} $E4C de tu billetera por: {selectedReward?.name}.
+                  Se debitarán {selectedReward?.cost_e4c} $E4C de tu billetera por: {selectedReward?.title}.
                 </p>
                 {transactionError && (
                   <p className="text-red-500 text-sm mb-4">{transactionError}</p>
                 )}
                 <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={confirmTransaction} 
-                    id="btn-confirm" 
+                  <button
+                    onClick={confirmTransaction}
+                    id="btn-confirm"
                     className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200"
                     disabled={processingTransaction}
                   >
